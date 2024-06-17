@@ -1,0 +1,5 @@
+GDAL==3.4.3
+shapely==2.0.
+pandas==1.1.4
+geopandas==0.13.2
+pyproj==3.2.1

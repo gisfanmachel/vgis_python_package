@@ -1,0 +1,12 @@
+TtInsuranceProjectMilestone
+tt_insurance_project_milestone
+保险项目里程碑表
+TtInsuranceReportType
+tt_insurance_report_type
+保险项目报告类型表
+TtInsuranceRiskAssessment
+tt_insurance_risk_assessment
+保险项目风险风险评估表
+TtInsuranceStage
+tt_insurance_stage
+保险项目阶段表

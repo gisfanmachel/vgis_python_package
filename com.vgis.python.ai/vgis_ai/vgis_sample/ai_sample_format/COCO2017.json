@@ -1,0 +1,38 @@
+{
+    "info": info,
+    "licenses": [license],
+    "images": [image],
+	annotation：{
+		"id": int,
+		"image_id": int,
+		"category_id": int,
+		"segmentation": RLE or [polygon],
+		"area": float,
+		"bbox": [x,y,width,height],
+		"iscrowd": 0 or 1,
+	},
+}
+    
+info{
+    "year": int,
+    "version": str,
+    "description": str,
+    "contributor": str,
+    "url": str,
+    "date_created": datetime,
+}
+license{
+    "id": int,
+    "name": str,
+    "url": str,
+} 
+image{
+    "id": int,
+    "width": int,
+    "height": int,
+    "file_name": str,
+    "license": int,
+    "flickr_url": str,
+    "coco_url": str,
+    "date_captured": datetime,
+}
