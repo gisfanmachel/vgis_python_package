@@ -31,6 +31,17 @@ class GISHelper:
     def __init__(self):
         pass
 
+    # 从投影信息获取UTM信息
+    def get_utm_from_proj(self, proj_txt):
+        # 适配不同的标识符
+        # JB卫星: PROJCS[\"WGS_1984_UTM_Zone_54N\",GEOGCS
+        # GJ卫星: PROJCRS[\"WGS 84 \ UTM zone 17N\",BASEGEOGCRS
+        if proj_txt.strip().startswith("PROJCS"):
+            proj = re.findall("PROJCS(.*?)GEOGCS", proj_txt)[0].lstrip("[")[:-1]
+        elif proj_txt.strip().startswith("PROJCRS"):
+            proj = re.findall("PROJCRS(.*?)BASEGEOGCRS", proj_txt)[0].lstrip("[")[:-1]
+        return proj
+
     # 纬度差对应的KM
     def lat_degree2km(self, dif_degree, radius=earth_radius):
         """
@@ -245,7 +256,7 @@ class GISHelper:
             if proj_wkt.strip().startswith("GEOGCS"):
                 return_point = point
             else:
-                proj = re.findall("PROJCS(.*?)GEOGCS", proj_wkt)[0].lstrip("[")[:-1]
+                proj = self.get_utm_from_proj(proj_wkt)
                 epsg = self.get_utm_epsg_by_projection_info(proj, center_lon, center_lat)
                 if epsg != -1:
                     print("转换前的espg:{}".format(epsg))
@@ -279,7 +290,7 @@ class GISHelper:
             if proj_wkt.strip().startswith("GEOGCS"):
                 return_point_list = points
             else:
-                proj = re.findall("PROJCS(.*?)GEOGCS", proj_wkt)[0].lstrip("[")[:-1]
+                proj = self.get_utm_from_proj(proj_wkt)
                 epsg = self.get_utm_epsg_by_projection_info(proj, center_lon, center_lat)
                 print("转换前的espg:{}".format(epsg))
                 transformer = Transformer.from_crs("epsg:" + str(epsg), "epsg:4326")
@@ -310,7 +321,7 @@ class GISHelper:
             # 参数2：WGS84地理坐标系统 对应 4326
             # 投影1：PROJCS[\"WGS_1984_UTM_Zone_54N\",GEOGCS
             # 投影2：PROJCS[\"WGS 84 / UTM zone 54N\",GEOGCS
-            proj = re.findall("PROJCS(.*?)GEOGCS", proj_wkt)[0].lstrip("[")[:-1]
+            proj = self.get_utm_from_proj(proj_wkt)
             epsg = self.get_utm_epsg_by_projection_info(proj, center_lon, center_lat)
             if epsg != -1:
                 print("转换前的espg:{}".format(epsg))
@@ -343,7 +354,7 @@ class GISHelper:
             # 通过正则表达式得到坐标系
             # 投影1：PROJCS[\"WGS_1984_UTM_Zone_54N\",GEOGCS
             # 投影2：PROJCS[\"WGS 84 / UTM zone 54N\",GEOGCS
-            proj = re.findall("PROJCS(.*?)GEOGCS", proj_wkt)[0].lstrip("[")[:-1]
+            proj = self.get_utm_from_proj(proj_wkt)
             epsg = self.get_utm_epsg_by_projection_info(proj, center_lon, center_lat)
             print("转换前的espg:{}".format(epsg))
             transformer = Transformer.from_crs("epsg:4326", "epsg:" + str(epsg))
