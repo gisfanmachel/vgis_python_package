@@ -21,8 +21,25 @@ from openpyxl.styles import Border, Side
 from vgis_utils.vgis_file.fileTools import FileHelper
 from vgis_utils.vgis_list.listTools import ListHelper
 
+import win32com.client
+from pathlib import Path
 
 class ExcelHelper:
+
+    @staticmethod
+    def xls2xlsx(input_filepath, output_filepath, keep_active=True):
+        input_filepath = Path(input_filepath).resolve()
+        output_filepath = Path(output_filepath).resolve()
+        excel_app = win32com.client.Dispatch("Excel.Application")
+        sheet = excel_app.Workbooks.Open(str(input_filepath))
+        try:
+            sheet.SaveAs(str(output_filepath), FileFormat=51)
+            sheet.Close(0)
+        except:
+            sheet.Close(0)
+
+        if not keep_active:
+            excel_app.Quit()
 
     # 判断excel表里是否有某列
     @staticmethod

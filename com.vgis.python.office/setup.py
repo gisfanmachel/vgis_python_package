@@ -54,6 +54,6 @@ setup(
     python_requires=">=3.7, <4",  # python 版本要求
 
     install_requires=["pandas", "vgis-utils", "fitz", "openpyxl", "python-docx", "PyMuPDF", "comtypes", "frontend",
-                      "loguru"],  # Optional 第三方依赖库
+                      "loguru", "pywin32"],  # Optional 第三方依赖库
 
 )
