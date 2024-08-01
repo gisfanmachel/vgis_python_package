@@ -23,12 +23,14 @@ from vgis_utils.vgis_list.listTools import ListHelper
 
 import win32com.client
 from pathlib import Path
+import pythoncom
 
 class ExcelHelper:
 
     @staticmethod
     # 需要安装了wps或office
     def xls2xlsx(input_filepath, output_filepath, keep_active=True):
+        pythoncom.CoUninitialize()
         input_filepath = Path(input_filepath).resolve()
         output_filepath = Path(output_filepath).resolve()
         excel_app = win32com.client.Dispatch("Excel.Application")
@@ -41,6 +43,7 @@ class ExcelHelper:
 
         if not keep_active:
             excel_app.Quit()
+        pythoncom.CoUninitialize()
 
     # 判断excel表里是否有某列
     @staticmethod

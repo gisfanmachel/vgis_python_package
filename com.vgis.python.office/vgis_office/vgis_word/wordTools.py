@@ -17,12 +17,14 @@ from docx.shared import Cm
 from docx.shared import Pt
 import win32com.client
 from pathlib import Path
+import pythoncom
 
 class WordHelper:
 
     @staticmethod
     # 需要安装wps
-    def save_as_docx(wps_file_path, save_path):
+    def wps2docx(wps_file_path, save_path):
+        pythoncom.CoInitialize()
         # 使用 WPS 打开文档
         wps = win32com.client.Dispatch("Kwps.Application")
         wps.Visible = False  # 可选，设置是否显示 WPS 界面
@@ -35,10 +37,12 @@ class WordHelper:
         # 关闭文档和 WPS 应用
         doc.Close()
         wps.Quit()
+        pythoncom.CoUninitialize()
 
     @staticmethod
     # 需要安装wps或office
     def doc2docx(input_filepath, output_filepath, keep_active=True):
+        pythoncom.CoInitialize()
         input_filepath = Path(input_filepath).resolve()
         output_filepath = Path(output_filepath).resolve()
         word_app = win32com.client.Dispatch("Word.Application")
@@ -51,6 +55,7 @@ class WordHelper:
 
         if not keep_active:
             word_app.Quit()
+        pythoncom.CoUninitialize()
     @staticmethod
     # 替换报告单里段落文字:{word}
     # python替换word中的书签变量{word}， 在读取{}时，获取runs不知道为什么会有些连在一起的文字会被拆掉（即使样式一样）
