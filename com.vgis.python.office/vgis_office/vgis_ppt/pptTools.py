@@ -15,6 +15,7 @@ from pathlib import Path
 
 class PptHelper:
     @staticmethod
+    # 需要安装了wps或office
     def ppt2pptx(input_filepath, output_filepath, keep_active=True):
         input_filepath = Path(input_filepath).resolve()
         output_filepath = Path(output_filepath).resolve()
