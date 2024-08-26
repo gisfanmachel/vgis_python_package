@@ -24,7 +24,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 setup(
 
     name="vgis_office",  # Required 项目名称
-    version="1.1.4",  # Required 发布版本号
+    version="1.1.5",  # Required 发布版本号
     description="A libary for office operator",  # Optional 项目简单描述
     long_description=long_description,  # Optional 详细描述
     long_description_content_type="text/markdown",  # 内容类型
@@ -54,6 +54,6 @@ setup(
     python_requires=">=3.7, <4",  # python 版本要求
 
     install_requires=["pandas", "vgis-utils", "fitz", "openpyxl", "python-docx", "PyMuPDF", "comtypes", "frontend",
-                      "loguru", "pywin32"],  # Optional 第三方依赖库
+                      "loguru"],  # Optional 第三方依赖库
 
 )

@@ -15,7 +15,8 @@ from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.oxml.ns import qn
 from docx.shared import Cm
 from docx.shared import Pt
-import win32com.client
+# import win32com.client
+import comtypes.client
 from pathlib import Path
 import pythoncom
 
@@ -25,27 +26,44 @@ class WordHelper:
     # 需要安装wps
     def wps2docx(wps_file_path, save_path):
         pythoncom.CoInitialize()
-        # 使用 WPS 打开文档
-        wps = win32com.client.Dispatch("Kwps.Application")
-        wps.Visible = False  # 可选，设置是否显示 WPS 界面
-        doc = wps.Documents.Open(os.path.abspath(wps_file_path), ReadOnly=1)
-        if wps_file_path == save_path:
-            os.remove(wps_file_path)
-        # 另存为 docx 文件
+        # # 使用 WPS 打开文档
+        # # wps = win32com.client.Dispatch("Kwps.Application")
+        # wps.Visible = False  # 可选，设置是否显示 WPS 界面
+        # doc = wps.Documents.Open(os.path.abspath(wps_file_path), ReadOnly=1)
+        # if wps_file_path == save_path:
+        #     os.remove(wps_file_path)
+        # # 另存为 docx 文件
+        # doc.SaveAs(os.path.abspath(save_path), 12)  # 12 表示 docx 格式
+        #
+        # # 关闭文档和 WPS 应用
+        # doc.Close()
+        # wps.Quit()
+
+        # 获取WPS文档的路径
+
+        # 初始化Word应用程序
+        word = comtypes.client.CreateObject('Word.Application')
+        word.Visible = 0  # 不显示Word应用程序界面
+
+        # 打开WPS文档
+        doc = word.Documents.Open(wps_file_path)
+
+        # 将WPS文档另存为Word文档
         doc.SaveAs(os.path.abspath(save_path), 12)  # 12 表示 docx 格式
 
-        # 关闭文档和 WPS 应用
+        # 关闭文档和Word应用程序
         doc.Close()
-        wps.Quit()
+        word.Quit()
         pythoncom.CoUninitialize()
 
     @staticmethod
-    # 需要安装wps或office
+    # windows环境下安装wps 或office;linux环境安装libreoffice
     def doc2docx(input_filepath, output_filepath, keep_active=True):
         pythoncom.CoInitialize()
         input_filepath = Path(input_filepath).resolve()
         output_filepath = Path(output_filepath).resolve()
-        word_app = win32com.client.Dispatch("Word.Application")
+        # word_app = win32com.client.Dispatch("Word.Application")
+        word_app = comtypes.client.CreateObject('Word.Application')
         doc = word_app.Documents.Open(str(input_filepath))
         try:
             doc.SaveAs2(str(output_filepath), FileFormat=16)

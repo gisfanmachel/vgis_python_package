@@ -21,19 +21,22 @@ from openpyxl.styles import Border, Side
 from vgis_utils.vgis_file.fileTools import FileHelper
 from vgis_utils.vgis_list.listTools import ListHelper
 
-import win32com.client
+# import win32com.client
+import comtypes.client
 from pathlib import Path
 import pythoncom
 
 class ExcelHelper:
 
     @staticmethod
-    # 需要安装了wps或office
+    # windows环境下安装wps 或office;linux环境安装libreoffice
     def xls2xlsx(input_filepath, output_filepath, keep_active=True):
         pythoncom.CoUninitialize()
         input_filepath = Path(input_filepath).resolve()
         output_filepath = Path(output_filepath).resolve()
-        excel_app = win32com.client.Dispatch("Excel.Application")
+        comtypes.CoInitialize()
+        excel_app = comtypes.client.CreateObject("Excel.Application")
+        # excel_app = win32com.client.Dispatch("Excel.Application")
         sheet = excel_app.Workbooks.Open(str(input_filepath))
         try:
             sheet.SaveAs(str(output_filepath), FileFormat=51)
