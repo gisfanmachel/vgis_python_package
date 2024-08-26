@@ -24,7 +24,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 setup(
 
     name="vgis_office",  # Required 项目名称
-    version="1.1.5",  # Required 发布版本号
+    version="1.1.6",  # Required 发布版本号
     description="A libary for office operator",  # Optional 项目简单描述
     long_description=long_description,  # Optional 详细描述
     long_description_content_type="text/markdown",  # 内容类型

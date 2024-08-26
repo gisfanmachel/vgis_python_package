@@ -9,71 +9,105 @@
 @Descr:
 """
 import os
+import sys
 
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.oxml.ns import qn
 from docx.shared import Cm
 from docx.shared import Pt
+
 # import win32com.client
-import comtypes.client
+if sys.platform == 'win32':
+    import comtypes.client
+import subprocess
 from pathlib import Path
 import pythoncom
+
 
 class WordHelper:
 
     @staticmethod
-    # 需要安装wps
     def wps2docx(wps_file_path, save_path):
-        pythoncom.CoInitialize()
-        # # 使用 WPS 打开文档
-        # # wps = win32com.client.Dispatch("Kwps.Application")
-        # wps.Visible = False  # 可选，设置是否显示 WPS 界面
-        # doc = wps.Documents.Open(os.path.abspath(wps_file_path), ReadOnly=1)
-        # if wps_file_path == save_path:
-        #     os.remove(wps_file_path)
-        # # 另存为 docx 文件
-        # doc.SaveAs(os.path.abspath(save_path), 12)  # 12 表示 docx 格式
-        #
-        # # 关闭文档和 WPS 应用
-        # doc.Close()
-        # wps.Quit()
+        # 需要安装libreoffice
+        if sys.platform == "linux":
+            # 确保使用的是完整路径
+            libreoffice_path = 'libreoffice'  # 如果libreoffice不在PATH中，需要指定完整路径
+            outdir = os.path.split(save_path)[0]
+            if not os.path.exists(outdir):
+                os.makedirs(outdir)
+            oldfilename = os.path.join(outdir, os.path.split(wps_file_path)[1].replace('.wps', '.docx'))
+            command = [libreoffice_path, '--invisible', '--convert-to', 'docx', wps_file_path, '--outdir', outdir]
+            # 运行命令，转换文件
+            subprocess.run(command, check=True)
+            # 将文件重命名为想要的文件名
+            os.rename(oldfilename, save_path)
+        # 需要安装wps
+        elif sys.platform == "win32":
+            pythoncom.CoInitialize()
+            # # 使用 WPS 打开文档
+            # # wps = win32com.client.Dispatch("Kwps.Application")
+            # wps.Visible = False  # 可选，设置是否显示 WPS 界面
+            # doc = wps.Documents.Open(os.path.abspath(wps_file_path), ReadOnly=1)
+            # if wps_file_path == save_path:
+            #     os.remove(wps_file_path)
+            # # 另存为 docx 文件
+            # doc.SaveAs(os.path.abspath(save_path), 12)  # 12 表示 docx 格式
+            #
+            # # 关闭文档和 WPS 应用
+            # doc.Close()
+            # wps.Quit()
 
-        # 获取WPS文档的路径
+            # 获取WPS文档的路径
 
-        # 初始化Word应用程序
-        word = comtypes.client.CreateObject('Word.Application')
-        word.Visible = 0  # 不显示Word应用程序界面
+            # 初始化Word应用程序
+            word = comtypes.client.CreateObject('Word.Application')
+            word.Visible = 0  # 不显示Word应用程序界面
 
-        # 打开WPS文档
-        doc = word.Documents.Open(wps_file_path)
+            # 打开WPS文档
+            doc = word.Documents.Open(wps_file_path)
 
-        # 将WPS文档另存为Word文档
-        doc.SaveAs(os.path.abspath(save_path), 12)  # 12 表示 docx 格式
+            # 将WPS文档另存为Word文档
+            doc.SaveAs(os.path.abspath(save_path), 12)  # 12 表示 docx 格式
 
-        # 关闭文档和Word应用程序
-        doc.Close()
-        word.Quit()
-        pythoncom.CoUninitialize()
+            # 关闭文档和Word应用程序
+            doc.Close()
+            word.Quit()
+            pythoncom.CoUninitialize()
 
     @staticmethod
     # windows环境下安装wps 或office;linux环境安装libreoffice
     def doc2docx(input_filepath, output_filepath, keep_active=True):
-        pythoncom.CoInitialize()
-        input_filepath = Path(input_filepath).resolve()
-        output_filepath = Path(output_filepath).resolve()
-        # word_app = win32com.client.Dispatch("Word.Application")
-        word_app = comtypes.client.CreateObject('Word.Application')
-        doc = word_app.Documents.Open(str(input_filepath))
-        try:
-            doc.SaveAs2(str(output_filepath), FileFormat=16)
-            doc.Close(0)
-        except:
-            doc.Close(0)
+        # 需要安装libreoffice
+        if sys.platform == "linux":
+            # 确保使用的是完整路径
+            libreoffice_path = 'libreoffice'  # 如果libreoffice不在PATH中，需要指定完整路径
+            outdir = os.path.split(output_filepath)[0]
+            if not os.path.exists(outdir):
+                os.makedirs(outdir)
+            oldfilename = os.path.join(outdir, os.path.split(input_filepath)[1].replace('.doc', '.docx'))
+            command = [libreoffice_path, '--invisible', '--convert-to', 'docx', input_filepath, '--outdir', outdir]
+            # 运行命令，转换文件
+            subprocess.run(command, check=True)
+            # 将文件重命名为想要的文件名
+            os.rename(oldfilename, output_filepath)
+        elif sys.platform == "win32":
+            pythoncom.CoInitialize()
+            input_filepath = Path(input_filepath).resolve()
+            output_filepath = Path(output_filepath).resolve()
+            # word_app = win32com.client.Dispatch("Word.Application")
+            word_app = comtypes.client.CreateObject('Word.Application')
+            doc = word_app.Documents.Open(str(input_filepath))
+            try:
+                doc.SaveAs2(str(output_filepath), FileFormat=16)
+                doc.Close(0)
+            except:
+                doc.Close(0)
 
-        if not keep_active:
-            word_app.Quit()
-        pythoncom.CoUninitialize()
+            if not keep_active:
+                word_app.Quit()
+            pythoncom.CoUninitialize()
+
     @staticmethod
     # 替换报告单里段落文字:{word}
     # python替换word中的书签变量{word}， 在读取{}时，获取runs不知道为什么会有些连在一起的文字会被拆掉（即使样式一样）
