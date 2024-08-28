@@ -25,9 +25,10 @@ from vgis_utils.vgis_list.listTools import ListHelper
 import sys
 if sys.platform == 'win32':
     import comtypes.client
+    import pythoncom
 import subprocess
 from pathlib import Path
-import pythoncom
+
 
 class ExcelHelper:
 

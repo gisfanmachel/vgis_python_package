@@ -20,9 +20,10 @@ from docx.shared import Pt
 # import win32com.client
 if sys.platform == 'win32':
     import comtypes.client
+    import pythoncom
 import subprocess
 from pathlib import Path
-import pythoncom
+
 
 
 class WordHelper:
