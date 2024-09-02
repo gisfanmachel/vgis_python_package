@@ -119,16 +119,50 @@ class WordHelper:
     def replace_txt_in_word(document, obj, logger):
         try:
 
+            # # 循环所有段落
+            # for paragraph in document.paragraphs:
+            #     # run是根据样式来分的，如果文字在一起，但是不同样式，也会分成两个run
+            #     for run in paragraph.runs:
+            #         # print(run.text)
+            #         for key, value in obj.items():
+            #             key = "{}".format(key)
+            #             if key in run.text:
+            #                 run.text = run.text.replace(key, "{}".format(value))
+            #                 # break
             # 循环所有段落
-            for paragraph in document.paragraphs:
-                # run是根据样式来分的，如果文字在一起，但是不同样式，也会分成两个run
-                for run in paragraph.runs:
-                    # print(run.text)
-                    for key, value in obj.items():
-                        key = "{}".format(key)
-                        if key in run.text:
-                            run.text = run.text.replace(key, "{}".format(value))
-                            # break
+            # 解决关键词书签被run拆分的问题，如{space_layout_constraints}被拆分成了{、space_layout_constraints、}三部分，导致匹配不上
+            _map_dict = obj
+            for _p in document.paragraphs:
+                runs = _p.runs
+                # 定义一个空的匹配词
+                _temp = ''
+                for run in runs:
+                    # 若替换词的开头在 run.text 中，结尾不在，且匹配词为空，则取出替换词的开头放入匹配词
+                    if '{' in run.text and '}' not in run.text and _temp == '':
+                        _ext = '{' + run.text.split('{')[1]
+                        _temp += _ext
+                        run.text = run.text.replace(_ext, '')
+                        continue
+
+                    if _temp:
+                        # 如果匹配词不为空 且 替换词的结尾在 run.text 中，则取出替换词的结尾放入匹配词
+                        if '}' in run.text:
+                            _ext = run.text.split('}')[0] + '}'
+                            _temp += _ext
+                            # 说明已经将替换词完整取出，根据词映射关系进行替换
+                            run.text = run.text.replace(_ext, str(_map_dict[_temp]))
+                            _temp = ''
+                        else:
+                            # 否则 将 run.text 追加放入匹配词
+                            _temp += run.text
+                            run.text = ''
+                        continue
+
+                    for _key, _val in _map_dict.items():
+                        if _key in run.text:
+                            run.text = run.text.replace(_key, str(_val))
+
+
             # 循环所有表格
             for table in document.tables:
                 for row in table.rows:
