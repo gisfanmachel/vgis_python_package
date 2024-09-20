@@ -192,6 +192,7 @@ class GISHelper:
         return coords[:2][0], coords[:2][1]
 
     # 地理坐标（度）到投影坐标（米）
+    # 输入的是要转的投影坐标系和经纬度
     def convert_point_from_geo_to_proj(self, proj_wkt, lon, lat):
         prosrs = osr.SpatialReference()
         prosrs.ImportFromWkt(proj_wkt)
@@ -329,6 +330,11 @@ class GISHelper:
                 transformer = Transformer.from_crs("epsg:4326", "epsg:" + str(epsg))
                 # lat, lon = transformer.transform(point_x, point_y)
                 point_x, point_y = transformer.transform(lat, lon)
+                #             # 初始化4326和3857的pyproj投影对象
+                #             p4326 = Proj(init='epsg:4326')  # WGS 84
+                #             p3857 = Proj(init='epsg:3857')  # Web 墨卡托
+                #             # 使用transform函数进行坐标转换
+                #             tif_minx, tif_maxy= transform(p4326, p3857, tif_minx, tif_maxy)
                 return_point = [[point_x, point_y]]
             else:
                 print("坐标转换失败，通过投影没有获取到EPSG，请检查数据")

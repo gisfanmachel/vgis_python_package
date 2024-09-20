@@ -10,7 +10,7 @@ import json
 import platform
 import re
 import subprocess
-from pyproj import Transformer
+from pyproj import Transformer, CRS, Proj, transform
 from PIL import Image
 from osgeo import gdal, osr
 
@@ -57,21 +57,7 @@ class TifFileOperator:
 
         return im_datas, geo, proj, rows, cols, couts
 
-    @staticmethod
-    # 从投影信息获取UTM信息
-    def get_utm_from_proj(self, proj_txt):
-        # 适配不同的标识符
-        # JB卫星: PROJCS[\"WGS_1984_UTM_Zone_54N\",GEOGCS
-        # GJ卫星: PROJCRS[\"WGS 84 \ UTM zone 17N\",BASEGEOGCRS
-        if proj_txt.strip().startswith("PROJCS"):
-            proj = re.findall("PROJCS(.*?)GEOGCS", proj_txt)[0].lstrip("[")[:-1]
-        elif proj_txt.strip().startswith("PROJCRS"):
-            proj = re.findall("PROJCRS(.*?)BASEGEOGCRS", proj_txt)[0].lstrip("[")[:-1]
-        return proj
 
-    @staticmethod
-    # 通过投影信息得到EPSG
-    def get_utm_epsg(self, projection, center_lon, center_lat):
         epsg_code = -1
         try:
             self.logger.info("转换前的proj:{}".format(projection))
@@ -129,13 +115,13 @@ class TifFileOperator:
         info_dict = json.loads(stdout)
         proj_wkt = info_dict['coordinateSystem']['wkt']
         # 如果调用gdalinfo命令报错，
-        # 通过staticmethod方法会报这些错，但是普通方法不报错
+        # 通过staticmethod方法会报这些错，但是普通方法不报错---windows环境
+        # linux环境，不会出现这些问题
         # ERROR 1: PROJ: proj_create_from_database: C:\Program Files\gdal\bin\proj6\share\proj.db lacks DATABASE.LAYOUT.VERSION.MAJOR / DATABASE.LAYOUT.VERSION.MINOR metadata. It comes from another PROJ installation.
         # ERROR 1: PROJ: proj_create_from_database: C:\Program Files\gdal\bin\proj6\share\proj.db lacks DATABASE.LAYOUT.VERSION.MAJOR / DATABASE.LAYOUT.VERSION.MINOR metadata. It comes from another PROJ installation.
         # ERROR 1: PROJ: proj_get_ellipsoid: CRS has no geodetic CRS
         # ERROR 1: PROJ: proj_get_ellipsoid: Object is not a CRS or GeodeticReferenceFrame
         # 这个时候得到的projection是不完整的，开头：ENGCRS["WGS_1984_Web_Mercator_Auxiliary_Sphere",
-
         print(proj_wkt)
         return proj_wkt
 
@@ -176,27 +162,13 @@ class TifFileOperator:
         # 转换为米，进行面积计算和分辨率计算
         resolution = None
         area = None
-        if proj_wkt.strip().startswith("GEOGCS"):
-            # 针对UTM分带的处理
-            if proj_wkt.find("utm") != -1 or proj_wkt.find("UTM") != -1:
-                center_lon = (tif_maxx - tif_minx) / 2
-                center_lat = (tif_maxy - tif_miny) / 2
-                proj = TifFileOperator.get_utm_from_proj(proj_wkt)
-                epsg = TifFileOperator.get_utm_epsg(proj, center_lon, center_lat)
-                print("转换前的espg:{}".format(epsg))
-                transformer = Transformer.from_crs("epsg:4326", "epsg:" + str(epsg))
-                tif_minx, tif_maxy = transformer.transform(tif_minx, tif_maxy)
-                tif_maxx, tif_miny = transformer.transform(tif_maxx, tif_miny)
-            # 其他标准的投影，如4326等
-            else:
-                prosrs = osr.SpatialReference()
-                prosrs.ImportFromWkt(proj_wkt)
-                geosrs = prosrs.CloneGeogCS()
-                ct = osr.CoordinateTransformation(geosrs, prosrs)
-                coords = ct.TransformPoint(tif_minx, tif_maxy)
-                tif_minx, tif_maxy = coords[:2][0], coords[:2][1]
-                coords = ct.TransformPoint(tif_maxx, tif_miny)
-                tif_maxx, tif_miny = coords[:2][0], coords[:2][1]
+        if proj_wkt.strip().startswith("GEOGCS") or proj_wkt.strip().startswith("GEOGCRS"):
+            # 初始化4326和3857的pyproj投影对象
+            p4326 = Proj(init='epsg:4326')  # WGS 84
+            p3857 = Proj(init='epsg:3857')  # Web 墨卡托
+            # 使用transform函数进行坐标转换
+            tif_minx, tif_maxy= transform(p4326, p3857, tif_minx, tif_maxy)
+            tif_maxx, tif_miny = transform(p4326, p3857, tif_maxx, tif_miny)
         # 投影坐标，米
         elif proj_wkt.strip().startswith("PROJCRS"):
             pass
@@ -263,26 +235,26 @@ if __name__ == '__main__':
     elif sysstr == "Linux":
         test_tif_path = "/mnt/share/data/test_images/TW2015_4326.TIF"
 
-    cmd = "gdalinfo -json {}".format(test_tif_path)
-    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-    # 获取标准输出和错误信息
-    stdout = result.stdout
-    stderr = result.stderr
+    # cmd = "gdalinfo -json {}".format(test_tif_path)
+    # result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    #
+    # # 获取标准输出和错误信息
+    # stdout = result.stdout
+    # stderr = result.stderr
 
     # 打印输出结果
     # print(stdout)
 
     # 如果有错误信息，也打印它们
-    if stderr:
-        print("错误信息：" + stderr)
-    info_dict = json.loads(stdout)
-    proj_wkt = info_dict['coordinateSystem']['wkt']
+    # if stderr:
+    #     print("错误信息：" + stderr)
+    # info_dict = json.loads(stdout)
+    # proj_wkt = info_dict['coordinateSystem']['wkt']
 
 
-    print(proj_wkt)
+    # print(proj_wkt)
 
 
-    # result_list = TifFileOperator.get_all_meta_of_tif(test_tif_path)
-    # for result in result_list:
-    #     print(result)
+    result_list = TifFileOperator.get_all_meta_of_tif(test_tif_path)
+    for result in result_list:
+        print(result)
