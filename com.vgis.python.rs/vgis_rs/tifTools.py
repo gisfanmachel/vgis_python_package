@@ -57,7 +57,6 @@ class TifFileOperator:
 
         return im_datas, geo, proj, rows, cols, couts
 
-
         epsg_code = -1
         try:
             self.logger.info("转换前的proj:{}".format(projection))
@@ -167,7 +166,7 @@ class TifFileOperator:
             p4326 = Proj(init='epsg:4326')  # WGS 84
             p3857 = Proj(init='epsg:3857')  # Web 墨卡托
             # 使用transform函数进行坐标转换
-            tif_minx, tif_maxy= transform(p4326, p3857, tif_minx, tif_maxy)
+            tif_minx, tif_maxy = transform(p4326, p3857, tif_minx, tif_maxy)
             tif_maxx, tif_miny = transform(p4326, p3857, tif_maxx, tif_miny)
         # 投影坐标，米
         elif proj_wkt.strip().startswith("PROJCRS"):
@@ -251,9 +250,7 @@ if __name__ == '__main__':
     # info_dict = json.loads(stdout)
     # proj_wkt = info_dict['coordinateSystem']['wkt']
 
-
     # print(proj_wkt)
-
 
     result_list = TifFileOperator.get_all_meta_of_tif(test_tif_path)
     for result in result_list:
