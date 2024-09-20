@@ -137,6 +137,7 @@ class TifFileOperator:
         # 右下角
         tif_maxx = adfGeoTransform[0] + cols * adfGeoTransform[1] + rows * adfGeoTransform[2]
         tif_miny = adfGeoTransform[3] + cols * adfGeoTransform[4] + rows * adfGeoTransform[5]
+        envelop = (tif_minx, tif_miny, tif_maxx, tif_maxy)
 
         # 获取投影信息
         proj_wkt = TifFileOperator.get_projection_by_gdalinfo(tif_path)
@@ -145,17 +146,13 @@ class TifFileOperator:
         band_count = dataset.RasterCount
 
         # 获取每个带的位深度
-        depth = None
-        depths = []
-        for i in range(band_count):
-            band = dataset.GetRasterBand(i + 1)
-            metadata_item = band.GetMetadataItem('GDAL_DATA', 'TIFF')
-            if metadata_item:
-                depth = int(metadata_item.split('=')[-1])
-                depths.append(depth)
-        # 如果所有带的位深度一致，则返回它，否则返回None
-        if len(set(depths)) == 1:
-            depth = depths[0]
+        # 获取第一个波段
+        band = dataset.GetRasterBand(1)
+
+        # 获取数据类型的位深
+        data_type = band.DataType
+        bit_depth = gdal.GetDataTypeSize(data_type)
+
 
         # 地理坐标，经纬度
         # 转换为米，进行面积计算和分辨率计算
@@ -174,8 +171,7 @@ class TifFileOperator:
         resolution = (tif_maxx - tif_minx) / cols
         area = (tif_maxx - tif_minx) * (tif_maxy - tif_miny)
 
-        return rows, cols, band_count, depth, resolution, area, (
-            tif_minx, tif_miny, tif_maxx, tif_maxy), proj_wkt
+        return rows, cols, band_count, bit_depth, resolution, area, envelop, proj_wkt
 
     @staticmethod
     # 计算tif图像的每个像素对应的经纬度值
