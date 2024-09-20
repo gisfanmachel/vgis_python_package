@@ -137,7 +137,7 @@ class TifFileOperator:
         # 右下角
         tif_maxx = adfGeoTransform[0] + cols * adfGeoTransform[1] + rows * adfGeoTransform[2]
         tif_miny = adfGeoTransform[3] + cols * adfGeoTransform[4] + rows * adfGeoTransform[5]
-        envelop = (tif_minx, tif_miny, tif_maxx, tif_maxy)
+        envelop = [tif_minx, tif_miny, tif_maxx, tif_maxy]
 
         # 获取投影信息
         proj_wkt = TifFileOperator.get_projection_by_gdalinfo(tif_path)
