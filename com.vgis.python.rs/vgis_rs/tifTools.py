@@ -114,7 +114,7 @@ class TifFileOperator:
         info_dict = json.loads(stdout)
         proj_wkt = info_dict['coordinateSystem']['wkt']
         # 如果调用gdalinfo命令报错，
-        # 通过staticmethod方法会报这些错，但是普通方法不报错---windows环境
+        # windows环境,在这里单元测试通过staticmethod方法会报这些错，但是普通方法不报错，如果打包好vgis-rs,在别的地方调用没问题
         # linux环境，不会出现这些问题
         # ERROR 1: PROJ: proj_create_from_database: C:\Program Files\gdal\bin\proj6\share\proj.db lacks DATABASE.LAYOUT.VERSION.MAJOR / DATABASE.LAYOUT.VERSION.MINOR metadata. It comes from another PROJ installation.
         # ERROR 1: PROJ: proj_create_from_database: C:\Program Files\gdal\bin\proj6\share\proj.db lacks DATABASE.LAYOUT.VERSION.MAJOR / DATABASE.LAYOUT.VERSION.MINOR metadata. It comes from another PROJ installation.
