@@ -7,6 +7,7 @@
 # @Descr   : gadl,rastrio等库处理tif数据
 # @Software: PyCharm
 import json
+import platform
 import re
 import subprocess
 from pyproj import Transformer
@@ -109,6 +110,36 @@ class TifFileOperator:
         return int(epsg_code)
 
     @staticmethod
+    # 通过gdalinfo命令获取完整的project wkt信息
+    def get_projection_by_gdalinfo(tif_path):
+        # 执行cmd命令
+        cmd = "gdalinfo -json {}".format(tif_path)
+        result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        # 获取标准输出和错误信息
+        stdout = result.stdout
+        stderr = result.stderr
+
+        # 打印输出结果
+        # print(stdout)
+
+        # 如果有错误信息，也打印它们
+        if stderr:
+            print("错误信息：" + stderr)
+        info_dict = json.loads(stdout)
+        proj_wkt = info_dict['coordinateSystem']['wkt']
+        # 如果调用gdalinfo命令报错，
+        # 通过staticmethod方法会报这些错，但是普通方法不报错
+        # ERROR 1: PROJ: proj_create_from_database: C:\Program Files\gdal\bin\proj6\share\proj.db lacks DATABASE.LAYOUT.VERSION.MAJOR / DATABASE.LAYOUT.VERSION.MINOR metadata. It comes from another PROJ installation.
+        # ERROR 1: PROJ: proj_create_from_database: C:\Program Files\gdal\bin\proj6\share\proj.db lacks DATABASE.LAYOUT.VERSION.MAJOR / DATABASE.LAYOUT.VERSION.MINOR metadata. It comes from another PROJ installation.
+        # ERROR 1: PROJ: proj_get_ellipsoid: CRS has no geodetic CRS
+        # ERROR 1: PROJ: proj_get_ellipsoid: Object is not a CRS or GeodeticReferenceFrame
+        # 这个时候得到的projection是不完整的，开头：ENGCRS["WGS_1984_Web_Mercator_Auxiliary_Sphere",
+
+        print(proj_wkt)
+        return proj_wkt
+
+    @staticmethod
     # 获取tif的投影信息、行数、列数、波段数、分辨率（米为单位）、面积（平方米）、空间范围（原始坐标）、
     def get_all_meta_of_tif(tif_path):
         dataset = gdal.Open(tif_path)
@@ -123,15 +154,7 @@ class TifFileOperator:
         tif_miny = adfGeoTransform[3] + cols * adfGeoTransform[4] + rows * adfGeoTransform[5]
 
         # 获取投影信息
-        # 构建命令
-        command = ['gdalinfo', '-json', tif_path]
-        # 执行命令并获取输出
-        result = subprocess.check_output(command, stderr=subprocess.STDOUT)
-        result_str = result.decode('utf-8')
-        # "{description"+str(result).lstrip("b").split("description")[-1].replace("\\r\\n","").replace("\\"","\"").replace("\\n","")+"}"
-        # 解析JSON字符串
-        info_dict = json.loads(result_str)
-        proj_wkt = info_dict['coordinateSystem']['wkt']
+        proj_wkt = TifFileOperator.get_projection_by_gdalinfo(tif_path)
 
         # 获取波段数
         band_count = dataset.RasterCount
@@ -163,7 +186,7 @@ class TifFileOperator:
                 print("转换前的espg:{}".format(epsg))
                 transformer = Transformer.from_crs("epsg:4326", "epsg:" + str(epsg))
                 tif_minx, tif_maxy = transformer.transform(tif_minx, tif_maxy)
-                tif_maxx, tif_miny = transformer.transform(tif_minx, tif_maxy)
+                tif_maxx, tif_miny = transformer.transform(tif_maxx, tif_miny)
             # 其他标准的投影，如4326等
             else:
                 prosrs = osr.SpatialReference()
@@ -171,17 +194,17 @@ class TifFileOperator:
                 geosrs = prosrs.CloneGeogCS()
                 ct = osr.CoordinateTransformation(geosrs, prosrs)
                 coords = ct.TransformPoint(tif_minx, tif_maxy)
-                tifminx, tif_maxy = coords[:2][0], coords[:2][1]
+                tif_minx, tif_maxy = coords[:2][0], coords[:2][1]
                 coords = ct.TransformPoint(tif_maxx, tif_miny)
                 tif_maxx, tif_miny = coords[:2][0], coords[:2][1]
         # 投影坐标，米
         elif proj_wkt.strip().startswith("PROJCRS"):
             pass
-        resolution = (tif_maxx - tifminx) / cols
-        area = (tif_maxx - tifminx) * (tif_maxy - tif_miny)
+        resolution = (tif_maxx - tif_minx) / cols
+        area = (tif_maxx - tif_minx) * (tif_maxy - tif_miny)
 
         return rows, cols, band_count, depth, resolution, area, (
-            tif_minx, tif_maxy, tif_maxx, tif_miny), proj_wkt
+            tif_minx, tif_miny, tif_maxx, tif_maxy), proj_wkt
 
     @staticmethod
     # 计算tif图像的每个像素对应的经纬度值
@@ -234,5 +257,32 @@ class TifFileOperator:
 
 
 if __name__ == '__main__':
-    tif_path = "c:/data/TW2015_3857.tif"
-    print(TifFileOperator.get_all_meta_of_tif(tif_path))
+    sysstr = platform.system()
+    if sysstr == "Windows":
+        test_tif_path = "y:/data/test_images/TW2015_4326.TIF"
+    elif sysstr == "Linux":
+        test_tif_path = "/mnt/share/data/test_images/TW2015_4326.TIF"
+
+    cmd = "gdalinfo -json {}".format(test_tif_path)
+    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    # 获取标准输出和错误信息
+    stdout = result.stdout
+    stderr = result.stderr
+
+    # 打印输出结果
+    # print(stdout)
+
+    # 如果有错误信息，也打印它们
+    if stderr:
+        print("错误信息：" + stderr)
+    info_dict = json.loads(stdout)
+    proj_wkt = info_dict['coordinateSystem']['wkt']
+
+
+    print(proj_wkt)
+
+
+    # result_list = TifFileOperator.get_all_meta_of_tif(test_tif_path)
+    # for result in result_list:
+    #     print(result)
