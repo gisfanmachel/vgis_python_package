@@ -12,8 +12,12 @@
 """
 import base64
 import os
+
+import requests
 import requests as req
+from vgis_gis.shpTools import ShpFileOperator
 from vgis_utils.vgis_datetime.datetimeTools import DateTimeHelper
+from requests.auth import HTTPBasicAuth
 
 
 class GeoserverOperatoer:
@@ -22,8 +26,38 @@ class GeoserverOperatoer:
     def __init__(self, geoserver_http_address, username, password):
         # "http://192.168.3.77:8085/geoserver"
         self.geoserver_http_address = geoserver_http_address
+        self.username = username
+        self.password = password
         self.serect = username + ":" + password
         self.basic_auth = "Basic " + str(base64.b64encode(self.serect.encode("utf-8")), "utf-8")
+
+    def get_workspace(self):
+        url = '{}/rest/workspaces'.format(self.geoserver_http_address)
+        response = requests.get(url, auth=HTTPBasicAuth(self.username, self.password))
+        return response.text
+
+    # 创建工作空间
+    def create_workspace(self, workspace_name):
+        url = '{}/rest/workspaces'.format(self.geoserver_http_address)
+        payload = {'name': workspace_name}
+        response = requests.post(url, json=payload, auth=HTTPBasicAuth(self.username, self.password))
+        return response.status_code == 201
+
+    # 创建数据存储
+    # 栅格存储
+    # /workspaces/{workspaceName}/coveragestores/{coveragestoreName}/coverages
+    # 矢量存储
+    # /workspaces/{workspaceName}/datastores/{datastoreName}/featuretypes,
+    # WMSStores 用于从其他 Web Map Service (WMS) 服务器获取数据并将其集成到 GeoServer 中
+    # /workspaces/{workspaceName}/wmsstores/{wmsstoreName}/wmslayers
+    # WMTSStores 用于从其他 Web Map Tile Service (WMTS) 服务器获取瓦片数据并将其集成到 GeoServer
+    # /workspaces/{workspaceName}/wmtsstores/{wmststoreName}/wmtslayers
+    def create_datastore(self, workspace_name, datastore_name, file_path):
+        url = '{}/rest/workspaces/{workspace_name}/datastores'.format(self.geoserver_http_address)
+        headers = {'Content-Type': 'application/zip'}
+        files = {'file': open(file_path, 'rb')}
+        response = requests.post(url, auth=HTTPBasicAuth(self.username, self.password), headers=headers, files=files)
+        return response.status_code == 201
 
     # 清除服务缓存
     def clear_geoserver_cache(self):
@@ -32,13 +66,13 @@ class GeoserverOperatoer:
         print(cmd)
         os.system(cmd)
 
-    # 发布geoserver tif 图层服务
+    # 发布geoserver tif 图层服务-WMS
     def publish_raster_layer_service(self, tif_path, workspacename, layer_name):
         print("发布栅格图层服务{}".format(layer_name))
-        url = self.geoserver_http_address + "/rest/workspaces/" + workspacename + "/coveragestores/" + layer_name + "/vgis_file.geotiff"
+        url = self.geoserver_http_address + "/rest/workspaces/" + workspacename + "/coveragestores/" + layer_name + "/file.geotiff"
         # Authorization信息在postman测试用例里看
         headers = {
-            'Content-type': 'vgis_image/tiff',
+            'Content-type': 'image/tiff',
             'Authorization': self.basic_auth
         }
         file = open(tif_path, 'rb')
@@ -53,7 +87,7 @@ class GeoserverOperatoer:
         url = "{}/rest/workspaces/{}/coveragestores/{}/coverages/{}".format(self.geoserver_http_address, workspacename,
                                                                             datastore_name, layer_name)
 
-        payload = "<coverage>   \r\n    <parameters>\r\n    <entry>\r\n      <vgis_string>InputTransparentColor</vgis_string>\r\n      <vgis_string>#000000</vgis_string>\r\n    </entry>\r\n  </parameters>\r\n</coverage>\r\n"
+        payload = "<coverage>   \r\n    <parameters>\r\n    <entry>\r\n      <string>InputTransparentColor</string>\r\n      <string>#000000</string>\r\n    </entry>\r\n  </parameters>\r\n</coverage>\r\n"
         headers = {
             'Content-Type': 'application/xml',
             'Authorization': self.basic_auth
@@ -77,11 +111,11 @@ class GeoserverOperatoer:
 
         return ishas
 
-    # 发布geoserver shp 图层服务
+    # 发布geoserver shp 图层服务--WMS
     # TODO:有问题，针对部分shp不能自动识别空间范围和srs
     def publish_shp_layer_service(self, shp_path, layer_name, workspacename, layer_style_color):
         print("发布矢量图层服务{}".format(layer_name))
-        url = self.geoserver_http_address + "/rest/workspaces/" + workspacename + "/datastores/" + layer_name + "/vgis_file.shp"
+        url = self.geoserver_http_address + "/rest/workspaces/" + workspacename + "/datastores/" + layer_name + "/file.shp"
         file = open(shp_path, 'rb')
         payload = file.read()
         headers = {
@@ -90,6 +124,26 @@ class GeoserverOperatoer:
         }
         response = req.request("PUT", url, headers=headers, data=payload)
         print(response.text)
+
+    def publish_shp_layer_service_v2(self, shp_path, layer_name, workspacename):
+        print("发布矢量图层服务{}".format(layer_name))
+        # windowsw文件路径
+        # file://C:\data\test\jiujiang2018_landuse_newcode.shp
+        # linux文件路径
+        # file:///data/shapefiles/rivers/rivers.shp
+        cmd = 'curl -v -u {}:{} -XPUT -H "Content-type: text/plain"   -d "file://{}"   {}/rest/workspaces/{}/datastores/{}/external.shp'.format(
+            self.username, self.password, shp_path, self.geoserver_http_address, workspacename, layer_name)
+        print(cmd)
+        os.system(cmd)
+
+    # 设置矢量图层的空间范围和坐标
+    # 针对发布图层没有自动识别的情况
+    def set_layer_coord_and_srs(self, layer_name, workspacename, minx, maxx, miny, maxy, epsg):
+        cmd = ' curl -v -u {}:{} -XPUT -H "Content-type:text/xml" -d "<layer><bounds><minx>{}</minx><maxx>{}</maxx><miny>{}</miny><maxy>{}</maxy><crs>ESPG:{}</crs></bounds></layer>" {}/rest/layers/{}:{}'.format(
+            self.username, self.password,
+            minx, maxx, miny, maxy, epsg, self.geoserver_http_address, workspacename, layer_name)
+        print(cmd)
+        os.system(cmd)
 
     # 发布postgis矢量图层
     def publish_postgis_feature_service(self, layer_name, workspace_name, pg_datastore_name):
@@ -126,6 +180,16 @@ class GeoserverOperatoer:
         curl_post_layergroup_response = req.request("POST", layergroup_url, headers=layergroup_headers,
                                                     data=layergroup_payload)
         print(curl_post_layergroup_response.text)
+
+    def get_layer_full_info(self, layer_name):
+        # curl -X GET http://localhost:12686/geoserver/rest/layers/jimu:ningbo_airplane_label_google -H  "accept: application/xml" -H  "content-type: application/xml"
+        url = self.geoserver_http_address + "/rest/layers/" + layer_name
+        payload = {}
+        headers = {
+            'Authorization': self.basic_auth
+        }
+        response = req.request("GET", url, headers=headers, data=payload)
+        print(response.text)
 
     # 得到图层信息，包括空间范围、坐标系等
     def get_layer_info(self, layer_name):
@@ -174,7 +238,7 @@ class GeoserverOperatoer:
     # 删除geoserver图层服务
     def delete_layer_service(self, layer_name):
         print("删除图层服务{}".format(layer_name))
-        curl_delete_layer_url = self.geoserver_http_address + "/rest/layers/python:" + layer_name
+        curl_delete_layer_url = self.geoserver_http_address + "/rest/layers/" + layer_name
         curl_delete_layer_payload = {}
         curl_delete_layerg_headers = {
             'Authorization': self.basic_auth
@@ -186,8 +250,9 @@ class GeoserverOperatoer:
 
     # 删除GeoServer图层
     def delete_layer_service2(self, layer_name):
-        cmd = "curl -v -u admin:geoserver -XDELETE {}/rest/layers/{}?recurse=true".format(self.geoserver_http_address,
-                                                                                          layer_name)
+        cmd = "curl -v -u {}:{} -XDELETE {}/rest/layers/{}?recurse=true".format(self.username, self.password,
+                                                                                self.geoserver_http_address,
+                                                                                layer_name)
         os.system(cmd)
 
     # 删除geoserver图层组服务
@@ -262,3 +327,94 @@ class GeoserverOperatoer:
         response = req.request("GET", url, headers=headers, data=payload)
         print(response.text)
         return response.text
+
+    # 设置MVT为输出格式
+    def set_mvt_format(self, workspace_name, layer_name):
+
+        print("为图层{}设置MVTT输出{}".format(layer_name))
+        # url = '{}/rest/workspaces/{}/layers/{}'.format(self.geoserver_http_address, workspace_name, layer_name)
+        url = self.geoserver_http_address + "/rest/layers/" + workspace_name + ":" + layer_name
+        payload = "<layer><tileCaching><cacheType>ALL</cacheType><gridSubdivision>0</gridSubdivision><formats><format>image/png</format><format>application/vnd.mapbox-vector-tile</format></formats></tileCaching></layer>"
+        headers = {
+            'Content-type': 'text/xml',
+            'Authorization': self.basic_auth
+        }
+        response = req.request("PUT", url, headers=headers, data=payload)
+        print(response.text)
+        return response.status_code == 201
+
+    # 开始切片
+    def run_seed_tiles(self, workspacename, layername, bbox, srs):
+        import requests
+
+        # GeoWebCache REST API的URL
+        gwc_url = '{}/gwc/rest/layer'.format(self.geoserver_http_address)
+
+        # 需要切片的图层名称，格式为'工作区:图层名'
+        layer_name = '{}:{}'.format(workspacename, layername)
+
+        # 创建会话
+        session = requests.Session()
+        session.auth = (self.username, self.password)
+
+        # 开始切片的请求
+        seed_request = {
+            "seed": {
+                "recurse": True,
+                # "bbox": "-180,-90,180,90",  # 切片的边界框，根据需要修改
+                # "srs": "EPSG:4326"  # 坐标系统，根据需要修改
+                "bbox": bbox,
+                "srs": srs
+            }
+        }
+
+        # 发送切片请求
+        response = session.post(f'{gwc_url}/{layer_name}/seed', json=seed_request)
+
+        # 检查响应
+        if response.status_code == 200:
+            print("切片请求已提交。")
+        else:
+            print("切片请求失败。", response.text)
+
+        # 关闭会话
+        session.close()
+
+
+if __name__ == '__main__':
+    geoserverOperatoer = GeoserverOperatoer('http://localhost:8080/geoserver', 'admin', 'geoserver')
+    workspace = "jimu"
+
+    # 发布栅格图层
+    # tif_path = "c:/data/TW2015_4326.tif"
+    # layer = os.path.split(tif_path)[1].split(".")[0]
+    # geoserverOperatoer.publish_raster_layer_service(tif_path, workspace, layer)
+    # geoserverOperatoer.clear_black_raster_layer_service(workspace, layer, layer)
+
+    # 发布矢量图层
+    shp_path = "c:/data/test/ningbo_airplane_label_google.shp"
+    layer = os.path.split(shp_path)[1].split(".")[0]
+    left, right, down, up = ShpFileOperator.get_layer_envlope(shp_path)
+    epsg = 4326
+    geoserverOperatoer.publish_shp_layer_service_v2(shp_path, layer, workspace)
+    geoserverOperatoer.set_layer_coord_and_srs(layer, workspace, left, right, down, up, epsg)
+
+# WMTS服务查看页面
+# http://localhost:12686/geoserver/gwc/demo/jimu:tw2015?gridSet=EPSG:4326&format=image/vnd.jpeg-png
+# http://localhost:8080/geoserver/gwc/demo/jimu:ningbo_airplane_label_google?gridSet=EPSG:4326&format=application/vnd.mapbox-vector-tile
+
+# WMTS瓦片URL
+# jpeg-png 栅格瓦片
+# http://{ip}:{port}/geoserver/gwc/service/wmts?layer={workspacename}:{layername}&style=&tilematrixset=EPSG:{epsg}&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image:vnd.jpeg-png&TileMatrix=EPSG:{epsg}:{z}&TileCol={x}&TileRow={y}
+# json 矢量瓦片
+# http://{ip}:{port}/geoserver/gwc/service/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&LAYER={workspacename}:{layername}&STYLE=&TILEMATRIX=EPSG:{epsg}:{z}&TILEMATRIXSET=EPSG:{epsg}&FORMAT=application/json;type=geojson&TILECOL={x}&TILEROW={y}
+# topojson 矢量瓦片
+# http://{ip}:{port}/geoserver/gwc/service/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&LAYER={workspacename}:{layername}&STYLE=&TILEMATRIX=EPSG:{epsg}:{z}&TILEMATRIXSET=EPSG:{epsg}&FORMAT=application/json;type=topojson&TILECOL={x}&TILEROW={y}
+# utfgrid 矢量瓦片
+# http://{ip}:{port}/geoserver/gwc/service/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&LAYER={workspacename}:{layername}&STYLE=&TILEMATRIX=EPSG:{epsg}:{z}&TILEMATRIXSET=EPSG:{epsg}&FORMAT=application/json;type=utfgrid&TILECOL={x}&TILEROW={y}
+# mvt矢量瓦片
+# http://{ip}:{port}/geoserver/gwc/service/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&LAYER={workspacename}:{layername}&STYLE=&TILEMATRIX=EPSG:{epsg}:{z}&TILEMATRIXSET=EPSG:{epsg}&FORMAT=application/vnd.mapbox-vector-tile&TILECOL={x}&TILEROW={y}
+
+# wms瓦片
+#  mvt瓦片 矢量瓦片
+# http://{ip}:{port}/geoserver/{worksapcename}/wms?service=WMTS&request=GetTile&version=1.0.0&layer={layername}&style=&tilematrixset=EPSG:{epsg}&format=application/vnd.mapbox-vector-tile&tilematrix=EPSG:{epsg}:{z}&tilerow={y}&tilecol={x}

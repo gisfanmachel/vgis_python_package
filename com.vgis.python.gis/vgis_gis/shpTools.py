@@ -174,6 +174,37 @@ class ShpFileOperator:
         ds.Destroy()
 
     @staticmethod
+    def get_epsg_of_shp(shp_file_path):
+        ds = ShpFileOperator.open_shape_file(shp_file_path)
+        layer = ds.GetLayer(0)
+        # 得到坐标系信息
+        spatialref = layer.GetSpatialRef()
+        epsg = spatialref.GetAttrValue("AUTHORITY", 1)
+        print("shp的EPSG：" + epsg)
+        # close
+        ds.Destroy()
+        return epsg
+
+    @staticmethod
+    def get_epsg_of_shp_v2(shp_file_path):
+        from osgeo import osr
+        import fiona
+        # 打开shapefile
+        with fiona.open(shp_file_path) as shapefile:
+            # 获取第一个要素的坐标系统信息
+            crs = shapefile.crs
+
+        # 创建OSR对象
+        osr_obj = osr.SpatialReference()
+        # 导入坐标系统信息
+        osr_obj.ImportFromWkt(crs.wkt)
+
+        # 获取EPSG代码
+        epsg_code = osr_obj.GetAttrValue('AUTHORITY', 1)
+
+        print(f"EPSG Code: {epsg_code}")
+
+    @staticmethod
     # 将多边形坐标点集合转换为shp文件
     # polygon_points: [[[point1x,point1y],[point2x,point2y]...[ponintnx,pointny],[point1x,point1y]],...]
     # [[[109.80439281463623,22.688411235809326],[109.81439281463623,22.698411235809326],[109.82439281463623,22.708411235809326],[109.83736896514893,22.710787296295166],[109.80439281463623,22.688411235809326]],...]
@@ -1512,14 +1543,20 @@ if __name__ == '__main__':
     # ShpFileOperator.convert_all_feature_to_geojson(shp_path, geojson_path)
 
     # excel转point shp
-    WINDOWS_PROJ_PATH = "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python39\\Lib\\site-packages\\pyproj\\proj_dir\\share\\proj"
-    LINUX_PROJ_PATH = "/usr/local/lib/python3.8/dist-packages/pyproj/proj_dir/share/proj"
-    platformType = platform.system().lower()
-    proj_pth = WINDOWS_PROJ_PATH if platformType == 'windows' else LINUX_PROJ_PATH
-    os.environ['PROJ_LIB'] = proj_pth
-    excel_path = "G:\\data\\去产能项目\\全国化工厂POI数据.xlsx"
-    shp_path = "G:\\data\\去产能项目\\全国化工厂POI数据.shp"
-    lat_field = "纬度"
-    lon_field = "经度"
-    epsg = 4326
-    ShpFileOperator.convert_excel_data_into_point_shp(excel_path, shp_path, lon_field, lat_field, epsg)
+    # WINDOWS_PROJ_PATH = "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python39\\Lib\\site-packages\\pyproj\\proj_dir\\share\\proj"
+    # LINUX_PROJ_PATH = "/usr/local/lib/python3.8/dist-packages/pyproj/proj_dir/share/proj"
+    # platformType = platform.system().lower()
+    # proj_pth = WINDOWS_PROJ_PATH if platformType == 'windows' else LINUX_PROJ_PATH
+    # os.environ['PROJ_LIB'] = proj_pth
+    # excel_path = "G:\\data\\去产能项目\\全国化工厂POI数据.xlsx"
+    # shp_path = "G:\\data\\去产能项目\\全国化工厂POI数据.shp"
+    # lat_field = "纬度"
+    # lon_field = "经度"
+    # epsg = 4326
+    # ShpFileOperator.convert_excel_data_into_point_shp(excel_path, shp_path, lon_field, lat_field, epsg)
+    shp_path = "c:/data/test/ningbo_airplane_label_google.shp"
+    print(ShpFileOperator.get_epsg_of_shp_v2(shp_path))
+
+    pass
+
+
