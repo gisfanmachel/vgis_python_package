@@ -391,8 +391,8 @@ if __name__ == '__main__':
     # layer = os.path.split(tif_path)[1].split(".")[0]
     # geoserverOperatoer.publish_raster_layer_service(tif_path, workspace, layer)
     # geoserverOperatoer.clear_black_raster_layer_service(workspace, layer, layer)
-    # espg=TifFileOperator.get_epsg_of_tif(tif_path)
-    # raster_tiles_url = "http://{}/geoserver/gwc/service/wmts?layer={}:{}&style=&tilematrixset=EPSG:{}&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image:vnd.jpeg-png&TileMatrix=EPSG:{}:{z}&TileCol={x}&TileRow={y}".format(geoserverOperatoer.geoserver_http_address,workspace, layer, epsg, epsg)
+    # epsg=TifFileOperator.get_epsg_of_tif(tif_path)
+    # raster_tiles_url = "http://{}/gwc/service/wmts?layer={}:{}&style=&tilematrixset=EPSG:{}&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image:vnd.jpeg-png&TileMatrix=EPSG:{}:{z}&TileCol={x}&TileRow={y}".format(geoserverOperatoer.geoserver_http_address,workspace, layer, epsg, epsg)
 
     # 发布矢量图层
     shp_path = "c:/data/test/ningbo_airplane_label_google.shp"
