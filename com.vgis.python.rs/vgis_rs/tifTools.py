@@ -222,6 +222,29 @@ class TifFileOperator:
         tif_miny = adfGeoTransform[3] + iXSize * adfGeoTransform[4] + iYSize * adfGeoTransform[5]
         return tif_minx, tif_miny, tif_maxx, tif_maxy
 
+    @staticmethod
+    # 通过gdalsrsinfo命令获取完整的epsg
+    def get_epsg_of_tif(shp_path):
+        # 执行cmd命令
+        cmd = "gdalsrsinfo {} -o epsg".format(shp_path)
+        print(cmd)
+        result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        # 获取标准输出和错误信息
+        stdout = result.stdout
+        stderr = result.stderr
+
+        # 打印输出结果
+        # print(stdout)
+
+        # 如果有错误信息，也打印它们
+        if stderr:
+            print("错误信息：" + stderr)
+        epsg = stdout.replace("\n", "").lstrip("EPSG:").lstrip("epsg:")
+
+        print(epsg)
+        return epsg
+
 
 if __name__ == '__main__':
     sysstr = platform.system()

@@ -16,6 +16,7 @@ import os
 import requests
 import requests as req
 from vgis_gis.shpTools import ShpFileOperator
+# from vgis_rs.tifTools import TifFileOperator
 from vgis_utils.vgis_datetime.datetimeTools import DateTimeHelper
 from requests.auth import HTTPBasicAuth
 
@@ -390,14 +391,27 @@ if __name__ == '__main__':
     # layer = os.path.split(tif_path)[1].split(".")[0]
     # geoserverOperatoer.publish_raster_layer_service(tif_path, workspace, layer)
     # geoserverOperatoer.clear_black_raster_layer_service(workspace, layer, layer)
+    # espg=TifFileOperator.get_epsg_of_tif(tif_path)
+    # raster_tiles_url = "http://{}/geoserver/gwc/service/wmts?layer={}:{}&style=&tilematrixset=EPSG:{}&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image:vnd.jpeg-png&TileMatrix=EPSG:{}:{z}&TileCol={x}&TileRow={y}".format(geoserverOperatoer.geoserver_http_address,workspace, layer, epsg, epsg)
 
     # 发布矢量图层
     shp_path = "c:/data/test/ningbo_airplane_label_google.shp"
     layer = os.path.split(shp_path)[1].split(".")[0]
     left, right, down, up = ShpFileOperator.get_layer_envlope(shp_path)
-    epsg = 4326
+    import os
+
+    os.environ[
+        'PROJ_LIB'] = "C:\\Users\\63241\\miniconda3\\envs\\django422_py310\\Lib\\site-packages\\pyproj\\proj_dir\\share\\proj"
+    from vgis_gis.shpTools import ShpFileOperator
+
+    epsg = ShpFileOperator.get_epsg_of_shp_v2(shp_path)
     geoserverOperatoer.publish_shp_layer_service_v2(shp_path, layer, workspace)
     geoserverOperatoer.set_layer_coord_and_srs(layer, workspace, left, right, down, up, epsg)
+
+    geojson_vector_tiles_url = "http://{}/gwc/service/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&LAYER={}:{}&STYLE=&TILEMATRIX=EPSG:{}:{z}&TILEMATRIXSET=EPSG:{}&FORMAT=application/json;type=geojson&TILECOL={x}&TILEROW={y}".format(
+        geoserverOperatoer.geoserver_http_address, workspace, layer, epsg, epsg)
+    mvt_vector_tiles_url = "http://{}/gwc/service/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&LAYER={}:{}&STYLE=&TILEMATRIX=EPSG:{}:{z}&TILEMATRIXSET=EPSG:{}&FORMAT=application/vnd.mapbox-vector-tile&TILECOL={x}&TILEROW={y}".format(
+        geoserverOperatoer.geoserver_http_address, workspace, layer, epsg, epsg)
 
 # WMTS服务查看页面
 # http://localhost:12686/geoserver/gwc/demo/jimu:tw2015?gridSet=EPSG:4326&format=image/vnd.jpeg-png
@@ -406,7 +420,7 @@ if __name__ == '__main__':
 # WMTS瓦片URL
 # jpeg-png 栅格瓦片
 # http://{ip}:{port}/geoserver/gwc/service/wmts?layer={workspacename}:{layername}&style=&tilematrixset=EPSG:{epsg}&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image:vnd.jpeg-png&TileMatrix=EPSG:{epsg}:{z}&TileCol={x}&TileRow={y}
-# json 矢量瓦片
+# geojson 矢量瓦片
 # http://{ip}:{port}/geoserver/gwc/service/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&LAYER={workspacename}:{layername}&STYLE=&TILEMATRIX=EPSG:{epsg}:{z}&TILEMATRIXSET=EPSG:{epsg}&FORMAT=application/json;type=geojson&TILECOL={x}&TILEROW={y}
 # topojson 矢量瓦片
 # http://{ip}:{port}/geoserver/gwc/service/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&LAYER={workspacename}:{layername}&STYLE=&TILEMATRIX=EPSG:{epsg}:{z}&TILEMATRIXSET=EPSG:{epsg}&FORMAT=application/json;type=topojson&TILECOL={x}&TILEROW={y}

@@ -16,7 +16,6 @@ import csv
 import os
 import platform
 from shutil import copyfile
-
 import geopandas as gpd
 import pandas as pd
 from osgeo import gdal
@@ -29,6 +28,8 @@ from vgis_office.vgis_excel.excelTools import ExcelHelper
 
 from vgis_utils.commonTools import CommonHelper
 
+import subprocess
+
 
 class ShpFileOperator:
     # 初始化
@@ -38,6 +39,7 @@ class ShpFileOperator:
     @staticmethod
     def open_shape_file(shp_file_path):
         # 为了支持中文路径，请添加下面这句代码
+        gdal.SetConfigOption("SHAPEFILE_DRIVER", "ESRI Shapefile")
         gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
         # 为了使属性表字段支持中文，请添加下面这句
         # 设置为空时可自动识别编码，GBK和UTF-8都可以识别
@@ -174,6 +176,7 @@ class ShpFileOperator:
         ds.Destroy()
 
     @staticmethod
+    # 这个方法有点问题，获取的是6326，不是4326，可能是坐标轴的原因
     def get_epsg_of_shp(shp_file_path):
         ds = ShpFileOperator.open_shape_file(shp_file_path)
         layer = ds.GetLayer(0)
@@ -186,23 +189,27 @@ class ShpFileOperator:
         return epsg
 
     @staticmethod
-    def get_epsg_of_shp_v2(shp_file_path):
-        from osgeo import osr
-        import fiona
-        # 打开shapefile
-        with fiona.open(shp_file_path) as shapefile:
-            # 获取第一个要素的坐标系统信息
-            crs = shapefile.crs
+    # 通过gdalsrsinfo命令获取完整的epsg
+    def get_epsg_of_shp_v2(shp_path):
+        # 执行cmd命令
+        cmd = "gdalsrsinfo {} -o epsg".format(shp_path)
+        print(cmd)
+        result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-        # 创建OSR对象
-        osr_obj = osr.SpatialReference()
-        # 导入坐标系统信息
-        osr_obj.ImportFromWkt(crs.wkt)
+        # 获取标准输出和错误信息
+        stdout = result.stdout
+        stderr = result.stderr
 
-        # 获取EPSG代码
-        epsg_code = osr_obj.GetAttrValue('AUTHORITY', 1)
+        # 打印输出结果
+        # print(stdout)
 
-        print(f"EPSG Code: {epsg_code}")
+        # 如果有错误信息，也打印它们
+        if stderr:
+            print("错误信息：" + stderr)
+        epsg = stdout.replace("\n", "").lstrip("EPSG:").lstrip("epsg:")
+
+        print(epsg)
+        return epsg
 
     @staticmethod
     # 将多边形坐标点集合转换为shp文件
@@ -1558,5 +1565,3 @@ if __name__ == '__main__':
     print(ShpFileOperator.get_epsg_of_shp_v2(shp_path))
 
     pass
-
-
