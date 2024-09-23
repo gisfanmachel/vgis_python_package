@@ -13,6 +13,7 @@ import subprocess
 from pyproj import Transformer, CRS, Proj, transform
 from PIL import Image
 from osgeo import gdal, osr
+from vgis_gis.gdalTools import GdalHelper
 
 
 class TifFileOperator:
@@ -99,7 +100,8 @@ class TifFileOperator:
     def get_projection_by_gdalinfo(tif_path):
         # 执行cmd命令
         cmd = "gdalinfo -json {}".format(tif_path)
-        result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                encoding="utf-8")
 
         # 获取标准输出和错误信息
         stdout = result.stdout
@@ -140,7 +142,9 @@ class TifFileOperator:
         envelop = [tif_minx, tif_miny, tif_maxx, tif_maxy]
 
         # 获取投影信息
-        proj_wkt = TifFileOperator.get_projection_by_gdalinfo(tif_path)
+        # proj_wkt = TifFileOperator.get_projection_by_gdalinfo(tif_path)
+        gdalOpeprator = GdalHelper()
+        proj_wkt = gdalOpeprator.get_projection_by_gdalinfo(tif_path)
 
         # 获取波段数
         band_count = dataset.RasterCount
@@ -152,7 +156,6 @@ class TifFileOperator:
         # 获取数据类型的位深
         data_type = band.DataType
         bit_depth = gdal.GetDataTypeSize(data_type)
-
 
         # 地理坐标，经纬度
         # 转换为米，进行面积计算和分辨率计算
@@ -228,7 +231,8 @@ class TifFileOperator:
         # 执行cmd命令
         cmd = "gdalsrsinfo {} -o epsg".format(shp_path)
         print(cmd)
-        result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                encoding="utf-8")
 
         # 获取标准输出和错误信息
         stdout = result.stdout
@@ -254,7 +258,7 @@ if __name__ == '__main__':
         test_tif_path = "/mnt/share/data/test_images/TW2015_4326.TIF"
 
     # cmd = "gdalinfo -json {}".format(test_tif_path)
-    # result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    # result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8")
     #
     # # 获取标准输出和错误信息
     # stdout = result.stdout

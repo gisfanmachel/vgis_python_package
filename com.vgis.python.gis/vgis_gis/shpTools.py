@@ -194,7 +194,7 @@ class ShpFileOperator:
         # 执行cmd命令
         cmd = "gdalsrsinfo {} -o epsg".format(shp_path)
         print(cmd)
-        result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8")
 
         # 获取标准输出和错误信息
         stdout = result.stdout
