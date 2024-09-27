@@ -60,6 +60,31 @@ class GeoserverOperatoer:
         response = requests.post(url, auth=HTTPBasicAuth(self.username, self.password), headers=headers, files=files)
         return response.status_code == 201
 
+    #
+
+
+    # 删除栅格存储
+    def delete_coveragestore(self, workspace_name, store_name):
+        # 删除栅格存储
+        # curl -v -u admin:geoserver -X DELETE http://127.0.0.1:8080/geoserver/rest/workspaces/jimu/coveragestores/uuuu?recurse=true
+        cmd = "curl -v -u {} -X DELETE {}/rest/workspaces/{}/coveragestores/{}?recurse=true".format(self.serect,
+                                                                                                    self.geoserver_http_address,
+                                                                                                    workspace_name,
+                                                                                                    store_name)
+        print(cmd)
+        os.system(cmd)
+
+    # 删除栅格存储
+    def delete_datastore(self, workspace_name, store_name):
+        # 删除矢量存储
+        # curl -v -u admin:geoserver -X DELETE http://127.0.0.1:8080/geoserver/rest/workspaces/jimu/datastores/tttt?recurse=true
+        cmd = "curl -v -u {} -X DELETE {}/rest/workspaces/{}/datastores/{}?recurse=true".format(self.serect,
+                                                                                                    self.geoserver_http_address,
+                                                                                                    workspace_name,
+                                                                                                    store_name)
+        print(cmd)
+        os.system(cmd)
+
     # 清除服务缓存
     def clear_geoserver_cache(self):
         cmd = 'curl -v -u {} -X POST {}/rest/reset -H  "accept: application/json" -H  "content-type: application/json"'.format(
