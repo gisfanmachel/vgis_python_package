@@ -25,7 +25,7 @@ from shapely.geometry import Polygon
 from shapely.geometry import box
 from shapely.ops import cascaded_union
 from vgis_office.vgis_excel.excelTools import ExcelHelper
-
+from pyproj import Transformer, CRS, Proj, transform
 from vgis_utils.commonTools import CommonHelper
 
 import subprocess
@@ -114,12 +114,12 @@ class ShpFileOperator:
         data_source = ShpFileOperator.open_shape_file(shp_file_path)
         layer = data_source.GetLayer()
         feature_count = layer.GetFeatureCount(0)
-        print("Shapefile 中的要素个数为:", feature_count)
-        return feature_count
-
         # 关闭数据源
         data_source = None
         data_source.Destroy()
+        print("Shapefile 中的要素个数为:", feature_count)
+        return feature_count
+
 
     @staticmethod
     # 读取shp数据，获取所有字段值信息
@@ -159,6 +159,24 @@ class ShpFileOperator:
         # close
         ds.Destroy()
         return all_data_list
+
+    @staticmethod
+    # 读取shp数据，获取字段信息（字段名，字段类型）
+    def get_shp_field_info(shp_file_path):
+        all_data_list = []
+        ds = ShpFileOperator.open_shape_file(shp_file_path)
+        layer = ds.GetLayer(0)
+        feature_count = layer.GetFeatureCount()
+        lydefn = layer.GetLayerDefn()
+        fieldlist = []
+        for i in range(lydefn.GetFieldCount()):
+            fddefn = lydefn.GetFieldDefn(i)
+            fddict = {'name': fddefn.GetName(), 'type': ogr.GetFieldTypeName(fddefn.GetType()),
+                      'width': fddefn.GetWidth(), 'decimal': fddefn.GetPrecision()}
+            fieldlist += [fddict]
+        # close
+        ds.Destroy()
+        return fieldlist
 
     @staticmethod
     # 获取shp的坐标系信息
@@ -1311,6 +1329,23 @@ class ShpFileOperator:
         maxY = input_geom.GetEnvelope()[3]
         return abs((maxX - minX) * (maxY - minY))
 
+    # 获取shp的外接矩形面积
+    @staticmethod
+    def get_area_of_shp(shp_path):
+        proj_wkt=ShpFileOperator.get_project_wkt_of_shp(shp_path)
+        shp_minx, shp_maxx, shp_miny, shp_maxy = ShpFileOperator.get_layer_envlope(shp_path)
+        if proj_wkt.strip().startswith("GEOGCS") or proj_wkt.strip().startswith("GEOGCRS"):
+            # 初始化4326和3857的pyproj投影对象
+            p4326 = Proj(init='epsg:4326')  # WGS 84
+            p3857 = Proj(init='epsg:3857')  # Web 墨卡托
+            # 使用transform函数进行坐标转换
+            shp_minx, shp_maxy = transform(p4326, p3857, shp_minx, shp_maxy)
+            shp_maxx, shp_miny = transform(p4326, p3857, shp_maxx, shp_miny)
+        # 投影坐标，米
+        elif proj_wkt.strip().startswith("PROJCRS"):
+            pass
+        area = (shp_maxx - shp_minx) * (shp_maxy - shp_miny)
+        return area
     @staticmethod
     # 获取shp的外接矩形shp
     def get_envshp_of_shp(shp_path: str, out_shp: str) -> None:
@@ -1334,6 +1369,19 @@ class ShpFileOperator:
         output_shapefile = out_shp
         poly_data.to_file(output_shapefile, engine='pyogrio')
 
+    @staticmethod
+    def get_project_wkt_of_shp(shp_path: str) -> None:
+        from osgeo import ogr
+
+        # 打开原始 SHP 文件
+        shp = ogr.Open(shp_path)
+        layer = shp.GetLayer()
+
+        # 获取投影信息
+        spatial_ref = layer.GetSpatialRef()
+        wkt = spatial_ref.ExportToWkt()
+
+        return wkt
     @staticmethod
     # 将多多边形转换为多边形
     def convert_multiplygon_to_polygon(shp_path: str, out_shp: str) -> None:
@@ -1562,6 +1610,6 @@ if __name__ == '__main__':
     # epsg = 4326
     # ShpFileOperator.convert_excel_data_into_point_shp(excel_path, shp_path, lon_field, lat_field, epsg)
     shp_path = "c:/data/test/ningbo_airplane_label_google.shp"
-    print(ShpFileOperator.get_epsg_of_shp_v2(shp_path))
+    print(ShpFileOperator.get_shp_field_info(shp_path))
 
     pass
