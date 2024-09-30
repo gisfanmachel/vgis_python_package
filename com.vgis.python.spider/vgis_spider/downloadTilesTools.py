@@ -477,7 +477,7 @@ class downloadTilesHelper:
     def build_xyz_tile_pic_url(self, col, row, level):
         url = None
         if self.image_service_info["service_type"] == "google_xyz":
-            url = "{}lyrs={}&x={}&y={}&z={}".format(
+            url = "{}{}&x={}&y={}&z={}".format(
                 self.image_service_info["service_url"], self.image_service_info["layer_name"],
                 col, row, level)
         elif self.image_service_info["service_type"] == "arcgis_xyz":
