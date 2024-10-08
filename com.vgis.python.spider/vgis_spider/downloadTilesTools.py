@@ -523,7 +523,14 @@ class downloadTilesHelper:
     # 获取wmts瓦片下载地址
     def build_wmts_tile_pic_url(self, col, row, level):
         url = None
+
         if self.image_service_info["service_type"] == "geoserver_wmts":
+            # image/png8
+            # image/gif
+            # image/jpeg
+            # image/png
+            # image/vnd.jpeg-png
+            # image/vnd.jpeg-png8
             url = "{}layer={}&style=&tilematrixset={}&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/{}&TileMatrix={}:{}&TileCol={}&TileRow={}".format(
                 self.image_service_info["service_url"], self.image_service_info["layer_name"],
                 self.image_service_info["gridset_name"], self.tile_pic_suffix, self.image_service_info["gridset_name"],
