@@ -115,7 +115,7 @@ class ShpFileOperator:
         layer = data_source.GetLayer()
         feature_count = layer.GetFeatureCount(0)
         # 关闭数据源
-        data_source = None
+        # data_source = None
         data_source.Destroy()
         print("Shapefile 中的要素个数为:", feature_count)
         return feature_count
