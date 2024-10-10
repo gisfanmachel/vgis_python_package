@@ -121,6 +121,18 @@ class ShpFileOperator:
         return feature_count
 
     @staticmethod
+    def get_shp_feature_count_by_where(shp_file_path, strFilter):
+        driver = ogr.GetDriverByName("ESRI Shapefile")
+        dataSource = driver.Open(shp_file_path, 1)
+        layer = dataSource.GetLayer()
+        featureCount = 0
+        # 按条件查询空间要素
+        layer.SetAttributeFilter(strFilter)
+        for feature in layer:
+            featureCount += 1
+        return featureCount
+
+    @staticmethod
     # 读取shp数据，获取所有字段值信息
     def get_shp_all_feild(shp_file_path):
         all_data_list = []
@@ -1332,6 +1344,27 @@ class ShpFileOperator:
         tgt_srs.ImportFromEPSG(3857)
         transform = osr.CoordinateTransformation(src_srs, tgt_srs)  # 计算投影转换参数
         areas = 0.0
+        for feature in layer:
+            geom = feature.GetGeometryRef()
+            geom2 = geom.Clone()
+            geom2.Transform(transform)
+            area_in_sq_m = geom2.GetArea()
+            areas += area_in_sq_m
+        return areas
+
+    @staticmethod
+    # 获取shp里符合条件的要素的面积（平方米）
+    def get_feature_area_by_where(shp_path, strFilter):
+        driver = ogr.GetDriverByName("ESRI Shapefile")
+        dataSource = driver.Open(shp_path, 1)
+        layer = dataSource.GetLayer()
+        src_srs = layer.GetSpatialRef()  # 获取原始坐标系或投影
+        tgt_srs = osr.SpatialReference()
+        tgt_srs.ImportFromEPSG(3857)
+        transform = osr.CoordinateTransformation(src_srs, tgt_srs)  # 计算投影转换参数
+        areas = 0.0
+        # 按条件查询空间要素
+        layer.SetAttributeFilter(strFilter)
         for feature in layer:
             geom = feature.GetGeometryRef()
             geom2 = geom.Clone()

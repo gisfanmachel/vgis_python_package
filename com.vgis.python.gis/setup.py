@@ -24,7 +24,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 setup(
 
     name="vgis_gis",  # Required 项目名称
-    version="1.4.5",  # Required 发布版本号
+    version="1.4.7",  # Required 发布版本号
 
     description="A libary for gis operator",  # Optional 项目简单描述
     long_description=long_description,  # Optional 详细描述
