@@ -120,7 +120,6 @@ class ShpFileOperator:
         print("Shapefile 中的要素个数为:", feature_count)
         return feature_count
 
-
     @staticmethod
     # 读取shp数据，获取所有字段值信息
     def get_shp_all_feild(shp_file_path):
@@ -212,7 +211,8 @@ class ShpFileOperator:
         # 执行cmd命令
         cmd = "gdalsrsinfo {} -o epsg".format(shp_path)
         print(cmd)
-        result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8")
+        result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                encoding="utf-8")
 
         # 获取标准输出和错误信息
         stdout = result.stdout
@@ -1321,6 +1321,26 @@ class ShpFileOperator:
         return reslut_list
 
     @staticmethod
+    # 获取shp里所有要素的面积（平方米）
+    def get_feature_area(shp_path):
+        driver = ogr.GetDriverByName("ESRI Shapefile")
+        dataSource = driver.Open(shp_path, 1)
+        layer = dataSource.GetLayer()
+
+        src_srs = layer.GetSpatialRef()  # 获取原始坐标系或投影
+        tgt_srs = osr.SpatialReference()
+        tgt_srs.ImportFromEPSG(3857)
+        transform = osr.CoordinateTransformation(src_srs, tgt_srs)  # 计算投影转换参数
+        areas = 0.0
+        for feature in layer:
+            geom = feature.GetGeometryRef()
+            geom2 = geom.Clone()
+            geom2.Transform(transform)
+            area_in_sq_m = geom2.GetArea()
+            areas += area_in_sq_m
+        return areas
+
+    @staticmethod
     # 得到单个几何体的外接矩形面积
     def get_area_envelop(input_geom):
         minX = input_geom.GetEnvelope()[0]
@@ -1332,7 +1352,7 @@ class ShpFileOperator:
     # 获取shp的外接矩形面积
     @staticmethod
     def get_area_of_shp(shp_path):
-        proj_wkt=ShpFileOperator.get_project_wkt_of_shp(shp_path)
+        proj_wkt = ShpFileOperator.get_project_wkt_of_shp(shp_path)
         shp_minx, shp_maxx, shp_miny, shp_maxy = ShpFileOperator.get_layer_envlope(shp_path)
         if proj_wkt.strip().startswith("GEOGCS") or proj_wkt.strip().startswith("GEOGCRS"):
             # 初始化4326和3857的pyproj投影对象
@@ -1346,6 +1366,7 @@ class ShpFileOperator:
             pass
         area = (shp_maxx - shp_minx) * (shp_maxy - shp_miny)
         return area
+
     @staticmethod
     # 获取shp的外接矩形shp
     def get_envshp_of_shp(shp_path: str, out_shp: str) -> None:
@@ -1382,6 +1403,7 @@ class ShpFileOperator:
         wkt = spatial_ref.ExportToWkt()
 
         return wkt
+
     @staticmethod
     # 将多多边形转换为多边形
     def convert_multiplygon_to_polygon(shp_path: str, out_shp: str) -> None:
