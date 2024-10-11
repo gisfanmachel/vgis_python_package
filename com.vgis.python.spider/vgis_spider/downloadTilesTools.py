@@ -55,11 +55,11 @@ class downloadTilesHelper:
 
         # 瓦片存储路径
         self.tile_pic_path = tile_pic_path if tile_pic_path is not None else os.path.join(os.getcwd(), ".cache",
-                                                                                          "allTiles_"+tem_dir_name)
+                                                                                          "allTiles_" + tem_dir_name)
         # 每列瓦片拼接的竖条图片存放路径
         self.vcontat_img_path = vcontat_img_path if vcontat_img_path is not None else os.path.join(os.getcwd(),
                                                                                                    ".cache",
-                                                                                                   "vMTiles_"+tem_dir_name)
+                                                                                                   "vMTiles_" + tem_dir_name)
         # 所有瓦片合成大图存放路径
         self.out_image_path = out_image_path
         # 是否使用多线程
@@ -101,7 +101,9 @@ class downloadTilesHelper:
                 tileMaxRow = round(floor(abs((tileMatrixMaxY - ymin)) / self.resolution / self.tile_size - epsilon))
             elif self.image_service_info["service_type"] == "google_xyz" or self.image_service_info[
                 "service_type"] == "arcgis_xyz" or self.image_service_info[
-                "service_type"] == "tdt_xyz" or self.image_service_info["service_type"] == "bing_quad":
+                "service_type"] == "tdt_xyz" or self.image_service_info[
+            "service_type"] == "here_xyz" or self.image_service_info[
+            "service_type"] == "jlyh_xyz" or self.image_service_info["service_type"] == "bing_quad":
                 # 原点（左上角）
                 # 基于瓦片级别,适合经纬度坐标范围
                 zoom_level = self.image_service_info["zoom_level"]
@@ -219,7 +221,10 @@ class downloadTilesHelper:
         tile_bounds = None
         if self.image_service_info["service_type"] == "google_xyz" or self.image_service_info[
             "service_type"] == "arcgis_xyz" or self.image_service_info[
-            "service_type"] == "tdt_xyz" or self.image_service_info["service_type"] == "bing_quad":
+            "service_type"] == "tdt_xyz" or self.image_service_info[
+            "service_type"] == "gaode_xyz" or self.image_service_info[
+            "service_type"] == "here_xyz" or self.image_service_info[
+            "service_type"] == "jlyh_xyz" or self.image_service_info["service_type"] == "bing_quad":
             left_lon = col / pow(2, level) * 360 - 180
             right_lon = (col + 1) / pow(2, level) * 360 - 180
             n = pi - (2 * pi * row) / pow(2, level)
@@ -474,6 +479,7 @@ class downloadTilesHelper:
             self.download_each_tile(retry_count, tile_url, "row=" + str(row) + "&col=" + str(col), col)
 
     # 获取xyz瓦片下载地址
+    # TODO:隐藏地图服务的许可，通过加密后的配置文件，同时客户端浏览器做好F12屏蔽
     def build_xyz_tile_pic_url(self, col, row, level):
         url = None
         if self.image_service_info["service_type"] == "google_xyz":
@@ -490,6 +496,24 @@ class downloadTilesHelper:
             url = "{}T={}&x={}&y={}&l={}&tk=6b059214ffa69ab16b57309422d77660".format(
                 self.image_service_info["service_url"], self.image_service_info["layer_name"],
                 col, row, level)
+            # print(url)
+        # https://webst02.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}
+        elif self.image_service_info["service_type"] == "gaode_xyz":
+            url = "{}style={}&x={}&y={}&z={}".format(
+                self.image_service_info["service_url"], self.image_service_info["layer_name"],
+                col, row, level)
+            # print(url)
+        # https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/jpeg?apiKey=ULcxipCuamEAS6NsNntuAMM84LddvMOlXH0BsE2RfaU&lang=en&style=satellite.day&size=512
+        elif self.image_service_info["service_type"] == "here_xyz":
+            url = "{}{}/{}/{}/jpeg?apiKey=ULcxipCuamEAS6NsNntuAMM84LddvMOlXH0BsE2RfaU&lang=en&style=satellite.day&size={}".format(
+                self.image_service_info["service_url"],
+                level, col, row, self.tile_size)
+            # print(url)
+        # https://api.jl1mall.com/getMap/{z}/{x}/{-y}?mk=2d9bf902749f1630bc25fc720ba7c29f&tk=6a1976c931d388deb9980e6aa81fb842
+        elif self.image_service_info["service_type"] == "jlyh_xyz":
+            url = "{}{}/{}/{}?mk=2d9bf902749f1630bc25fc720ba7c29f&tk=6a1976c931d388deb9980e6aa81fb842".format(
+                self.image_service_info["service_url"],
+                level, col, -row, self.tile_size)
             # print(url)
         return url
 

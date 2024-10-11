@@ -93,6 +93,7 @@ class GeoserverOperatoer:
         os.system(cmd)
 
     # 发布geoserver tif 图层服务-WMS
+    # tif名称要和layer_name对应上
     def publish_raster_layer_service(self, tif_path, workspacename, layer_name):
         print("发布栅格图层服务{}".format(layer_name))
         url = self.geoserver_http_address + "/rest/workspaces/" + workspacename + "/coveragestores/" + layer_name + "/file.geotiff"
@@ -151,6 +152,7 @@ class GeoserverOperatoer:
         response = req.request("PUT", url, headers=headers, data=payload)
         print(response.text)
 
+    # shp名称要和layer_name对应上
     def publish_shp_layer_service_v2(self, shp_path, layer_name, workspacename):
         print("发布矢量图层服务{}".format(layer_name))
         # windowsw文件路径
