@@ -189,6 +189,36 @@ class ShpFileOperator:
         ds.Destroy()
         return fieldlist
 
+
+    # 重新设置shp投影
+    # 实质是新增或修改prj文件
+    # 针对没有投影的是新建proj文件
+    @staticmethod
+    def set_coordsInof_of_shp(shp_file_path, epsg):
+
+        # 输入Shapefile路径
+        input_shp = shp_file_path
+
+        # 打开输入的Shapefile
+        driver = ogr.GetDriverByName('ESRI Shapefile')
+        input_data = driver.Open(input_shp, 1)  # 1 means read/write
+
+        if input_data is None:
+            print("无法打开输入Shapefile")
+        else:
+            # 创建新的空间参考
+            srs = osr.SpatialReference()
+            srs.ImportFromEPSG(epsg)
+
+            # 创建.prj文件
+            prj_filename = input_shp.replace('.shp', '.prj')
+            with open(prj_filename, 'w') as prj_file:
+                prj_file.write(srs.ExportToWkt())
+
+            # 关闭数据源
+            input_data.Destroy()
+
+            print("投影信息已成功设置为EPSG:" + str(epsg))
     @staticmethod
     # 获取shp的坐标系信息
     def get_coordsInfo_of_shp(shp_file_path):
