@@ -94,6 +94,7 @@ class GeoserverOperatoer:
 
     # 发布geoserver tif 图层服务-WMS
     # tif名称要和layer_name对应上
+    # 将tip文件上传到geoserver的data目录进行发布
     def publish_raster_layer_service(self, tif_path, workspacename, layer_name):
         print("发布栅格图层服务{}".format(layer_name))
         url = self.geoserver_http_address + "/rest/workspaces/" + workspacename + "/coveragestores/" + layer_name + "/file.geotiff"
@@ -106,6 +107,19 @@ class GeoserverOperatoer:
         payload = file.read()
         response = req.request("PUT", url, headers=headers, data=payload)
         print(response.text)
+
+    # tif名称要和layer_name对应上
+    # 按照tif原有路径进行发布
+    def publish_tif_layer_service_v2(self, tif_path, layer_name, workspacename):
+        print("发布栅格图层服务{}".format(layer_name))
+        # windowsw文件路径
+        # file://C:\data\test\jiujiang2018_landuse_newcode.tif
+        # linux文件路径
+        # file:///data/shapefiles/rivers/rivers.tif
+        cmd = 'curl -v -u {}:{} -XPUT -H "Content-type: text/plain"   -d "file://{}"   {}/rest/workspaces/{}/coveragestores/{}/external.geotiff'.format(
+            self.username, self.password, tif_path, self.geoserver_http_address, workspacename, layer_name)
+        print(cmd)
+        os.system(cmd)
 
     # 去除栅格图层的黑边
     def clear_black_raster_layer_service(self, workspacename, datastore_name, layer_name):
@@ -140,6 +154,7 @@ class GeoserverOperatoer:
 
     # 发布geoserver shp 图层服务--WMS
     # TODO:有问题，针对部分shp不能自动识别空间范围和srs
+    # 将shp文件上传到geoserver的data目录进行发布
     def publish_shp_layer_service(self, shp_path, layer_name, workspacename, layer_style_color):
         print("发布矢量图层服务{}".format(layer_name))
         url = self.geoserver_http_address + "/rest/workspaces/" + workspacename + "/datastores/" + layer_name + "/file.shp"
@@ -153,6 +168,7 @@ class GeoserverOperatoer:
         print(response.text)
 
     # shp名称要和layer_name对应上
+    # 按照shp原有路径进行发布
     def publish_shp_layer_service_v2(self, shp_path, layer_name, workspacename):
         print("发布矢量图层服务{}".format(layer_name))
         # windowsw文件路径
