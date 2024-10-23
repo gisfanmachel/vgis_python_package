@@ -102,8 +102,11 @@ class downloadTilesHelper:
             elif self.image_service_info["service_type"] == "google_xyz" or self.image_service_info[
                 "service_type"] == "arcgis_xyz" or self.image_service_info[
                 "service_type"] == "tdt_xyz" or self.image_service_info[
-            "service_type"] == "here_xyz" or self.image_service_info[
-            "service_type"] == "jlyh_xyz" or self.image_service_info["service_type"] == "bing_quad":
+                "service_type"] == "gaode_xyz" or self.image_service_info[
+                "service_type"] == "here_xyz" or self.image_service_info[
+                "service_type"] == "jlyh_xyz" or self.image_service_info[
+                "service_type"] == "xtdq_xyz" or self.image_service_info[
+                "service_type"] == "swdq_xyz" or self.image_service_info["service_type"] == "bing_quad":
                 # 原点（左上角）
                 # 基于瓦片级别,适合经纬度坐标范围
                 zoom_level = self.image_service_info["zoom_level"]
@@ -124,6 +127,21 @@ class downloadTilesHelper:
                 tileMaxCol = round(floor(abs(xmax - tileMatrixMinx) / self.resolution / self.tile_size - epsilon))
                 tileMinRow = round(floor(abs(ymax - tileMatrixMiny) / self.resolution / self.tile_size + epsilon))
                 tileMaxRow = round(floor(abs(ymin - tileMatrixMiny) / self.resolution / self.tile_size - epsilon))
+            elif self.image_service_info["service_type"] == "jlyh_tms":
+                # 原点（左下角）
+                # 基于瓦片级别,适合经纬度坐标范围
+                zoom_level = self.image_service_info["zoom_level"]
+                tileMinCol = floor((xmin + 180) / 360 * pow(2, zoom_level))
+                tileMaxCol = floor((xmax + 180) / 360 * pow(2, zoom_level))
+                tileMinRow = floor(
+                    (1 - log(tan(ymax * pi / 180) + 1 / cos(ymax * pi / 180)) / pi) / 2 * pow(2, zoom_level))
+                tileMaxRow = floor(
+                    (1 - log(tan(ymin * pi / 180) + 1 / cos(ymin * pi / 180)) / pi) / 2 * pow(2, zoom_level))
+
+                # tileMinRow = floor(
+                #     (1 - log(tan(ymin * pi / 180) + 1 / cos(ymin * pi / 180)) / pi) / 2 * pow(2, zoom_level))
+                # tileMaxRow = floor(
+                #     (1 - log(tan(ymax * pi / 180) + 1 / cos(ymax * pi / 180)) / pi) / 2 * pow(2, zoom_level))
         # 判断行列号是否越界
         matrixWidth = pow(2, self.image_service_info["zoom_level"] + 1)
         matrixHeight = pow(2, self.image_service_info["zoom_level"])
@@ -160,11 +178,23 @@ class downloadTilesHelper:
             left_top_tile_bounds = self.get_bounds_of_wmts_tile(self.image_service_info["zoom_level"],
                                                                 tileMinRow, tileMinCol)
         elif self.image_service_type == "tms":
-            pass
+
+            # 单线程
+            if not self.is_multi_thread:
+                for col in range(tileMinCol, tileMaxCol + 1):
+                    param = [col, tileMinRow, tileMaxRow]
+                    self.loop_download_tms_tiles_follow_col(param)
+            # 多线程
+            else:
+                param_list = []
+                for col in range(tileMinCol, tileMaxCol + 1):
+                    param = [col, tileMinRow, tileMaxRow]
+                    param_list.append(param)
+                self.multi_thread_workder(self.loop_download_tms_tiles_follow_col, param_list)
             # 同时计算左上角瓦片的地图单位
-            # 瓦片原点在左下角
-            if "geoserver" in self.image_service_info["service_type"]:
-                pass
+            # 瓦片原点在左上角
+            left_top_tile_bounds = self.get_bounds_of_wmts_tile(self.image_service_info["zoom_level"],
+                                                                tileMinRow, tileMinCol)
         elif self.image_service_type == "xyz" or self.image_service_type == "quad":
 
             for col in range(tileMinCol, tileMaxCol + 1):
@@ -219,18 +249,30 @@ class downloadTilesHelper:
     #  通过瓦片的行列号及层级 获取xyz瓦片的地图坐标范围
     def get_bounds_of_xyz_tile(self, level, row, col):
         tile_bounds = None
+        # 原点在左下角
         if self.image_service_info["service_type"] == "google_xyz" or self.image_service_info[
             "service_type"] == "arcgis_xyz" or self.image_service_info[
             "service_type"] == "tdt_xyz" or self.image_service_info[
             "service_type"] == "gaode_xyz" or self.image_service_info[
             "service_type"] == "here_xyz" or self.image_service_info[
-            "service_type"] == "jlyh_xyz" or self.image_service_info["service_type"] == "bing_quad":
+            "service_type"] == "jlyh_xyz" or self.image_service_info[
+            "service_type"] == "xtdq_xyz" or self.image_service_info[
+            "service_type"] == "swdq_xyz" or self.image_service_info["service_type"] == "bing_quad":
             left_lon = col / pow(2, level) * 360 - 180
             right_lon = (col + 1) / pow(2, level) * 360 - 180
             n = pi - (2 * pi * row) / pow(2, level)
             top_lat = 180 / pi * atan(0.5 * (exp(n) - exp(-n)))
             n = pi - (2 * pi * (row + 1)) / pow(2, level)
             bottom_lat = 180 / pi * atan(0.5 * (exp(n) - exp(-n)))
+            tile_bounds = [left_lon, bottom_lat, right_lon, top_lat]
+        # 原点在左上角
+        elif self.image_service_info["service_type"] == "jlyh_tms":
+            left_lon = col / pow(2, level) * 360 - 180
+            right_lon = (col + 1) / pow(2, level) * 360 - 180
+            n = pi - (2 * pi * row) / pow(2, level)
+            bottom_lat = 180 / pi * atan(0.5 * (exp(n) - exp(-n)))
+            n = pi - (2 * pi * (row + 1)) / pow(2, level)
+            top_lat = 180 / pi * atan(0.5 * (exp(n) - exp(-n)))
             tile_bounds = [left_lon, bottom_lat, right_lon, top_lat]
         return tile_bounds
 
@@ -455,6 +497,18 @@ class downloadTilesHelper:
             self.download_each_tile(retry_count, tile_url, "row=" + str(row) + "&col=" + str(col), col)
 
     # param:[currentCol,tileMinRow,tileMaxRow]
+    def loop_download_tms_tiles_follow_col(self, param):
+        col = param[0]
+        tileMinRow = param[1]
+        tileMaxRow = param[2]
+        for row in range(tileMinRow, tileMaxRow + 1):
+            tile_url = self.build_tms_tile_pic_url(col, row, self.image_service_info["zoom_level"])
+            # 下载瓦片
+            # self.retry_download_curent = 0
+            retry_count = 0
+            self.download_each_tile(retry_count, tile_url, "row=" + str(row) + "&col=" + str(col), col)
+
+    # param:[currentCol,tileMinRow,tileMaxRow]
     def loop_download_xyz_tiles_follow_col(self, param):
         col = param[0]
         tileMinRow = param[1]
@@ -480,40 +534,81 @@ class downloadTilesHelper:
 
     # 获取xyz瓦片下载地址
     # TODO:隐藏地图服务的许可，通过加密后的配置文件，同时客户端浏览器做好F12屏蔽
+    # 或者学习商汤的代理模式（token控制授权）
+    # 商汤代理的 https://senseearth-cloud.com/se/api/tiles/external/jilin1hao/6/50/37.png?mk=2d9bf902749f1630bc25fc720ba7c29f
+    # 原始的吉林一号 https://api.jl1mall.com/getMap/18/215969/99169?mk=2d9bf902749f1630bc25fc720ba7c29f&tk=6a1976c931d388deb9980e6aa81fb842&sch=wmts
     def build_xyz_tile_pic_url(self, col, row, level):
         url = None
+        # 谷歌影像
+        # https://gac-geo.googlecnapps.club/maps/vt?lyrs=s&x={x}&y={y}&z={z}
         if self.image_service_info["service_type"] == "google_xyz":
             url = "{}{}&x={}&y={}&z={}".format(
                 self.image_service_info["service_url"], self.image_service_info["layer_name"],
                 col, row, level)
+        # ArcGIS影像
+        # https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}
         elif self.image_service_info["service_type"] == "arcgis_xyz":
             url = "{}{}/MapServer/tile/{}/{}/{}".format(
                 self.image_service_info["service_url"], self.image_service_info["layer_name"],
                 level, row, col)
             # print(url)
         # 需要天地图许可--服务器端
+        # http://t0.tianditu.com/DataServer?T=img_w&x={x}&y={y}&l={z}&tk=6b059214ffa69ab16b57309422d77660
         elif self.image_service_info["service_type"] == "tdt_xyz":
             url = "{}T={}&x={}&y={}&l={}&tk=6b059214ffa69ab16b57309422d77660".format(
                 self.image_service_info["service_url"], self.image_service_info["layer_name"],
                 col, row, level)
             # print(url)
+        # 高德影像
         # https://webst02.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}
         elif self.image_service_info["service_type"] == "gaode_xyz":
             url = "{}style={}&x={}&y={}&z={}".format(
                 self.image_service_info["service_url"], self.image_service_info["layer_name"],
                 col, row, level)
             # print(url)
+        # here影像
         # https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/jpeg?apiKey=ULcxipCuamEAS6NsNntuAMM84LddvMOlXH0BsE2RfaU&lang=en&style=satellite.day&size=512
         elif self.image_service_info["service_type"] == "here_xyz":
             url = "{}{}/{}/{}/jpeg?apiKey=ULcxipCuamEAS6NsNntuAMM84LddvMOlXH0BsE2RfaU&lang=en&style=satellite.day&size={}".format(
                 self.image_service_info["service_url"],
                 level, col, row, self.tile_size)
             # print(url)
-        # https://api.jl1mall.com/getMap/{z}/{x}/{-y}?mk=2d9bf902749f1630bc25fc720ba7c29f&tk=6a1976c931d388deb9980e6aa81fb842
+        # 吉林一号影像
+        #  wmts
+        # https://api.jl1mall.com/getMap/{z}/{x}/{y}?mk=2d9bf902749f1630bc25fc720ba7c29f&tk=b94b6c3b1652fadcd3348aa17c0aef01&sch=wmts
         elif self.image_service_info["service_type"] == "jlyh_xyz":
+            url = "{}{}/{}/{}?mk={}&tk=b94b6c3b1652fadcd3348aa17c0aef01&sch=wmts".format(
+                self.image_service_info["service_url"],
+                level, col, row, self.image_service_info["layer_name"])
+        # 四维地球影像
+        #  wmts
+        # https://swapi1.siweiearth.com/sj_raster/v6/wmts/tile/10001601/1?ak=mt9bc2e424a72ed95a755c24e51ab23b01&tilematrix={z}&tilecol={x}&tilerow={y}&request=gettile&service=wmts
+        elif self.image_service_info["service_type"] == "swdq_xyz":
+            url = "{}10001601/1?ak=mt9bc2e424a72ed95a755c24e51ab23b01&tilematrix={}&tilecol={}&tilerow={}&request=gettile&service=wmts".format(
+                self.image_service_info["service_url"],
+                level, col, row)
+        # 星图地球影像
+        #  wmts
+        # https://tiles1.geovisearth.com/base/v1/img/{z}/{x}/{y}?format=webp&token=7d0c3bc189a29ee6d09b676042627d523face22647409d55f829c9b1b36da0e8
+        elif self.image_service_info["service_type"] == "xtdq_xyz":
+            url = "{}{}/{}/{}/{}?format=webp&token=917c8f15e0acff5543cd819c454a9753d3f09f34f257ec6afb16a041e6880883".format(
+                self.image_service_info["service_url"], self.image_service_info["layer_name"],
+                level, col, row)
+        # print(url)
+        return url
+
+    def build_tms_tile_pic_url(self, col, row, level):
+        url = None
+
+        if self.image_service_info["service_type"] == "jlyh_tms":
+            # tms
+            # https://api.jl1mall.com/getMap/{z}/{x}/{-y}?mk=2d9bf902749f1630bc25fc720ba7c29f&tk=6a1976c931d388deb9980e6aa81fb842
             url = "{}{}/{}/{}?mk=2d9bf902749f1630bc25fc720ba7c29f&tk=6a1976c931d388deb9980e6aa81fb842".format(
                 self.image_service_info["service_url"],
                 level, col, -row, self.tile_size)
+        elif self.image_service_info["service_type"] == "geoserver_tms":
+            pass
+
             # print(url)
         return url
 
