@@ -189,7 +189,6 @@ class ShpFileOperator:
         ds.Destroy()
         return fieldlist
 
-
     # 重新设置shp投影
     # 实质是新增或修改prj文件
     # 针对没有投影的是新建proj文件
@@ -219,6 +218,7 @@ class ShpFileOperator:
             input_data.Destroy()
 
             print("投影信息已成功设置为EPSG:" + str(epsg))
+
     @staticmethod
     # 获取shp的坐标系信息
     def get_coordsInfo_of_shp(shp_file_path):
@@ -1596,6 +1596,29 @@ class ShpFileOperator:
         driver = ogr.GetDriverByName('ESRI Shapefile')
         pFeatureDataset = driver.Open(os.path.join(file_pre_path, base_name + ".shp"), 1)
         return pFeatureDataset
+
+    @staticmethod
+    def get_all_meta_of_shp(shp_path):
+        ds = ogr.Open(shp_path, True)  # True表示以读写方式打开
+        layer = ds.GetLayer(0)
+        minx, maxx, miny, maxy = layer.GetExtent()
+        envelop = [minx, miny, maxx, maxy]
+        proj_wkt = ShpFileOperator.get_project_wkt_of_shp(shp_path)
+        # 地理坐标，经纬度
+        # 转换为米，进行面积计算
+        area = None
+        if proj_wkt.strip().startswith("GEOGCS") or proj_wkt.strip().startswith("GEOGCRS"):
+            # 初始化4326和3857的pyproj投影对象
+            p4326 = Proj(init='epsg:4326')  # WGS 84
+            p3857 = Proj(init='epsg:3857')  # Web 墨卡托
+            # 使用transform函数进行坐标转换
+            minx, maxy = transform(p4326, p3857, minx, maxy)
+            maxx, miny = transform(p4326, p3857, maxx, miny)
+        # 投影坐标，米
+        elif proj_wkt.strip().startswith("PROJCRS"):
+            pass
+        area = (maxx - minx) * (maxy - miny)
+        return area, envelop, proj_wkt
 
 
 if __name__ == '__main__':
