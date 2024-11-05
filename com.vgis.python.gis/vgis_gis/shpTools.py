@@ -173,6 +173,38 @@ class ShpFileOperator:
 
     @staticmethod
     # 读取shp数据，获取字段信息（字段名，字段类型）
+    # Integer  int
+    # Simple 32bit integer.
+    #
+    # IntegerList int
+    # List of 32bit integers.
+    #
+    # Real double
+    # Double Precision floating point.
+    #
+    # RealList double
+    # List of doubles.
+    #
+    # String varchar
+    # String of ASCII chars.
+    #
+    # Binary
+    # Raw Binary data.
+    #
+    # Date date
+    # Date.
+    #
+    # Time  time
+    # Time.
+    #
+    # DateTime datetime
+    # Date and Time.
+    #
+    # Integer64
+    # Single 64bit integer.
+    #
+    # Integer64List
+    # List of 64bit integers.
     def get_shp_field_info(shp_file_path):
         all_data_list = []
         ds = ShpFileOperator.open_shape_file(shp_file_path)
