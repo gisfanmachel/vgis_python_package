@@ -1630,6 +1630,26 @@ class ShpFileOperator:
         return pFeatureDataset
 
     @staticmethod
+    # 获取要素类型
+    # wkbPoint‌：表示一个点。
+    # wkbLineString‌：表示一条线。
+    # wkbPolygon‌：表示一个多边形。
+    # wkbMultiPoint‌：表示多个点。
+    # wkbMultiLineString‌：表示多条线。
+    # wkbMultiPolygon‌：表示多个多边形。
+    # wkbGeometryCollection‌：表示一个几何集合，可以包含上述任何类型的几何对象。
+    # 这些几何类型遵循OGC的几何对象模型，用于描述地理空间数据的基本形状。
+    def get_feature_type_of_shp(shp_path):
+        ds = ogr.Open(shp_path, True)  # True表示以读写方式打开
+        layer = ds.GetLayer(0)
+        return layer.GetGeomType()
+
+    @staticmethod
+    # 获取多边形要素的坐标
+    def get_polygon_feature_coord(shp_path):
+        pass
+
+    @staticmethod
     def get_all_meta_of_shp(shp_path):
         ds = ogr.Open(shp_path, True)  # True表示以读写方式打开
         layer = ds.GetLayer(0)
