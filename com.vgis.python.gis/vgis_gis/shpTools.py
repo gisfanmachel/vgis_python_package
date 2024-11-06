@@ -1631,23 +1631,90 @@ class ShpFileOperator:
 
     @staticmethod
     # 获取要素类型
-    # wkbPoint‌：表示一个点。
-    # wkbLineString‌：表示一条线。
-    # wkbPolygon‌：表示一个多边形。
-    # wkbMultiPoint‌：表示多个点。
-    # wkbMultiLineString‌：表示多条线。
-    # wkbMultiPolygon‌：表示多个多边形。
+    # wkbPoint‌：表示一个点。  1
+    # wkbLineString‌：表示一条线。 2
+    # wkbPolygon‌：表示一个多边形。 3
+    # wkbMultiPoint‌：表示多个点。 4
+    # wkbMultiLineString‌：表示多条线。5
+    # wkbMultiPolygon‌：表示多个多边形。6
     # wkbGeometryCollection‌：表示一个几何集合，可以包含上述任何类型的几何对象。
     # 这些几何类型遵循OGC的几何对象模型，用于描述地理空间数据的基本形状。
     def get_feature_type_of_shp(shp_path):
         ds = ogr.Open(shp_path, True)  # True表示以读写方式打开
         layer = ds.GetLayer(0)
-        return layer.GetGeomType()
+        geom_type = layer.GetGeomType()
+        # 将几何类型代码转换为字符串
+        if geom_type == ogr.wkbPoint:
+            return "Point"
+        elif geom_type == ogr.wkbLineString:
+            return "LineString"
+        elif geom_type == ogr.wkbPolygon:
+            return "Polygon"
+        elif geom_type == ogr.wkbMultiPoint:
+            return "MultiPoint"
+        elif geom_type == ogr.wkbMultiLineString:
+            return "MultiLineString"
+        elif geom_type == ogr.wkbMultiPolygon:
+            return "MultiPolygon"
+        elif geom_type == ogr.wkbGeometryCollection:
+            return "GeometryCollection"
+        else:
+            return "Unknown"
 
     @staticmethod
     # 获取多边形要素的坐标
+    # [
+    #                     [
+    #                         120.29183954000652,
+    #                         22.716991603376268
+    #                     ],
+    #                     [
+    #                         120.29183954000652,
+    #                         22.719918787477614
+    #                     ],
+    #                     [
+    #                         120.29595762491047,
+    #                         22.719918787477614
+    #                     ],
+    #                     [
+    #                         120.29595762491047,
+    #                         22.716991603376268
+    #                     ],
+    #                     [
+    #                         120.29183954000652,
+    #                         22.716991603376268
+    #                     ]
+    #                 ]
     def get_polygon_feature_coord(shp_path):
-        pass
+        coords_array = []
+        # 注册所有驱动
+        ogr.RegisterAll()
+        # 打开Shapefile
+        ds = ogr.Open(shp_path, 0)
+        if ds is None:
+            print('无法打开Shapefile')
+        # 获取图层
+        lyr = ds.GetLayer(0)
+        # 遍历所有的要素
+
+        for feat in lyr:
+            coords = []
+            geom = feat.GetGeometryRef()
+            # 获取几何形状的类型
+            geom_type = geom.GetGeometryType()
+            if geom_type == ogr.wkbPolygon:
+                # 获取外环
+                ring = geom.GetGeometryRef(0)
+                # 遍历外环的所有点
+                for i in range(ring.GetPointCount()):
+                    print(ring.GetPoint_2D(i))
+                    coords.append(list(ring.GetPoint_2D(i)))
+                # coords.append(coords[0])
+                coords_array.append(coords)
+
+        # 关闭数据集
+        ds.Destroy()
+        return coords_array
 
     @staticmethod
     def get_all_meta_of_shp(shp_path):
@@ -1770,6 +1837,6 @@ if __name__ == '__main__':
     # epsg = 4326
     # ShpFileOperator.convert_excel_data_into_point_shp(excel_path, shp_path, lon_field, lat_field, epsg)
     shp_path = "c:/data/test/ningbo_airplane_label_google.shp"
-    print(ShpFileOperator.get_shp_field_info(shp_path))
+    print(ShpFileOperator.get_polygon_feature_coord(shp_path))
 
     pass
