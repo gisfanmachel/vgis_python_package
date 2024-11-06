@@ -1687,12 +1687,8 @@ class ShpFileOperator:
     #                 ]
     def get_polygon_feature_coord(shp_path):
         coords_array = []
-        # 注册所有驱动
-        ogr.RegisterAll()
-        # 打开Shapefile
-        ds = ogr.Open(shp_path, 0)
-        if ds is None:
-            print('无法打开Shapefile')
+        # 用ogr.open打开，在外面调用的时候，最后return会闪退，不知道什么原因
+        ds = ShpFileOperator.open_shape_file(shp_path)
         # 获取图层
         lyr = ds.GetLayer(0)
         # 遍历所有的要素
