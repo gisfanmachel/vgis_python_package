@@ -24,7 +24,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 setup(
 
     name="vgis_utils",  # Required 项目名称
-    version="1.4.3",  # Required 发布版本号
+    version="1.4.5",  # Required 发布版本号
     description="A libary for common operator",  # Optional 项目简单描述
     long_description=long_description,  # Optional 详细描述
     long_description_content_type="text/markdown",  # 内容类型
@@ -53,7 +53,7 @@ setup(
 
     python_requires=">=3.7, <4",  # python 版本要求
 
-    install_requires=["opencv-python", "Pillow", "numpy","chardet", "loguru", "pypinyin", "cn2an", "id-validator"],
+    install_requires=["opencv-python", "Pillow", "numpy","chardet", "loguru", "pypinyin", "cn2an", "id-validator","toollib"],
     # Optional 第三方依赖库
 
 )

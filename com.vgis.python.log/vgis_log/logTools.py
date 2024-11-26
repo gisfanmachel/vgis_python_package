@@ -51,16 +51,16 @@ class Log:
             fd.close()
 
 
-
 class LoggerHelper:
     def __init__(self):
         pass
 
     @staticmethod
     # 日志入库
-    def insert_log_info(SysLog,username, operation, method, params=None, time=None, ip=None, error_info=None):
+    def insert_log_info(SysLog, username, operation, method, params=None, time=None, ip=None, error_info=None):
         create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         data = {}
+        data["id"] = CommonHelper.snowflakeId()
         data["username"] = username
         data["operation"] = operation
         data["method"] = method
@@ -78,31 +78,44 @@ class LoggerHelper:
         return start
 
     @staticmethod
-    def set_end_log_info(SysLog,logger, start, api_path, user, request, function_title):
+    def set_end_log_info(SysLog, logger, start, api_path, user, request, function_title):
         logger.info("结束时间：" + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         end = time.perf_counter()
         t = end - start
         logger.info("总共用时{}秒".format(t))
-        LoggerHelper.insert_log_info(SysLog,user, function_title + "成功",
+        LoggerHelper.insert_log_info(SysLog, user, function_title + "成功",
                                      api_path,
                                      HttpHelper.get_params_request(request),
                                      t, HttpHelper.get_ip_request(request), None)
 
     @staticmethod
-    def set_end_log_info_in_exception(SysLog,logger, start, api_path, user, request, function_title, error_info, exp):
+    def set_end_log_info_in_exception(SysLog, logger, start, api_path, user, request, function_title, error_info, exp,
+                                      **kwargs):
+        FAIL = "失败"
+        CODE = "代码"
+        LINE = "行数"
+
+        if "localization" in kwargs:
+            local = kwargs["localization"]
+            if local == "EN":
+                FAIL = " is fail"
+                CODE = "code"
+                LINE = "lines"
+
         if exp is not None:
             logger.error("{}失败：{}".format(function_title, str(exp)))
             logger.error(exp)
             logger.error(exp.__traceback__.tb_frame.f_globals["__file__"])  # 发生异常所在的文件
             logger.error(exp.__traceback__.tb_lineno)  # 发生异常所在的行数
-            error_info = str(exp) + "\n代码：" + str(exp.__traceback__.tb_frame.f_globals["__file__"]) + "\n行数：" + str(
+            error_info = str(exp) + "\n{}：".format(CODE) + str(
+                exp.__traceback__.tb_frame.f_globals["__file__"]) + "\n{}：".format(LINE) + str(
                 exp.__traceback__.tb_lineno)
             res = {
                 "success": False,
-                "info": "{}失败:{}".format(function_title, exp)
+                "info": "{}{}:{}".format(function_title, FAIL, exp)
             }
         else:
-            logger.error("{}失败：{}".format(function_title, error_info))
+            logger.error("{}{}：{}".format(function_title, FAIL, error_info))
             res = {
                 "success": False,
                 "info": error_info
@@ -112,7 +125,7 @@ class LoggerHelper:
         t = end - start
         logger.info("总共用时{}秒".format(t))
         # 日志入库
-        LoggerHelper.insert_log_info(SysLog,user, function_title + "失败",
+        LoggerHelper.insert_log_info(SysLog, user, function_title + "失败",
                                      api_path,
                                      HttpHelper.get_params_request(request),
                                      t, HttpHelper.get_ip_request(request), error_info)

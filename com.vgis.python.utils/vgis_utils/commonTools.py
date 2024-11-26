@@ -8,12 +8,21 @@
 # @Software: PyCharm
 import platform
 import subprocess
-
+from toollib.guid import SnowFlake
 
 class CommonHelper:
     # 初始化
     def __init__(self):
         pass
+
+
+    @staticmethod
+    # 生成雪花ID不超过16位，保证前端能够正常传输
+    def snowflakeId():
+        # worker_id  = 0,
+        # datacenter_id = 0,
+        snow = SnowFlake(worker_id_bits=0, datacenter_id_bits=0)
+        return snow.gen_uid()
 
     @staticmethod
     # 获取换行符
