@@ -79,7 +79,10 @@ class ShpFileOperator:
 
     @staticmethod
     # 将shp中每个要素转换为geojson，用shp里指定字段值来命名geojson
-    def convert_each_feature_to_geojson(shp_file_path, geojson_dir_path, geojson_name_field_name):
+    def convert_each_feature_to_geojson2(shp_file_path, geojson_dir_path, geojson_name_field_name,geojson_name_field_start_index,geojson_name_field_end_index):
+        # 设置GDAL的UTF-8编码
+        gdal.SetConfigOption('GDAL_FILENAME_IS_UTF8', 'YES')
+        gdal.SetConfigOption('SHAPE_ENCODING', 'UTF-8')
         shp_dataset = ShpFileOperator.open_shape_file(shp_file_path)
         shp_lyr = shp_dataset.GetLayer(0)
         feature_count = shp_lyr.GetFeatureCount()
@@ -87,8 +90,43 @@ class ShpFileOperator:
             feature = shp_lyr.GetNextFeature()
             geom = feature.GetGeometryRef()
             # 创建结果Geojson
-            # 获取前六位编码
-            geojson_name = feature.GetFieldAsString(geojson_name_field_name)[0:6]
+            # 获取指定位编码
+            geojson_name = feature.GetFieldAsString(geojson_name_field_name)[geojson_name_field_start_index:geojson_name_field_end_index]
+            # geojson_name = feature.GetFieldAsString(geojson_name_field_name)
+            geojson_file_path = geojson_dir_path + CommonHelper.get_dash_in_system() + geojson_name + ".geoJson"
+            if os.path.exists(geojson_file_path):
+                os.remove(geojson_file_path)
+            out_driver = ogr.GetDriverByName('GeoJSON')
+            out_ds = out_driver.CreateDataSource(geojson_file_path)
+            if out_ds.GetLayer(geojson_name):
+                out_ds.DeleteLayer(geojson_name)
+            out_lyr = out_ds.CreateLayer(geojson_name, shp_lyr.GetSpatialRef())
+            out_lyr.CreateFields(shp_lyr.schema)
+            out_feat = ogr.Feature(out_lyr.GetLayerDefn())
+            # 生成结果文件
+            out_feat.SetGeometry(feature.geometry())
+            for j in range(feature.GetFieldCount()):
+                out_feat.SetField(j, feature.GetField(j))
+            out_lyr.CreateFeature(out_feat)
+            del out_ds
+        feature.Destroy()
+        shp_dataset.Destroy()
+
+
+    @staticmethod
+    # 将shp中每个要素转换为geojson，用shp里指定字段值来命名geojson
+    def convert_each_feature_to_geojson(shp_file_path, geojson_dir_path, geojson_name_field_name):
+        # 设置GDAL的UTF-8编码
+        gdal.SetConfigOption('GDAL_FILENAME_IS_UTF8', 'YES')
+        gdal.SetConfigOption('SHAPE_ENCODING', 'UTF-8')
+        shp_dataset = ShpFileOperator.open_shape_file(shp_file_path)
+        shp_lyr = shp_dataset.GetLayer(0)
+        feature_count = shp_lyr.GetFeatureCount()
+        for t in range(feature_count):
+            feature = shp_lyr.GetNextFeature()
+            geom = feature.GetGeometryRef()
+            # 创建结果Geojson
+            geojson_name = feature.GetFieldAsString(geojson_name_field_name)
             geojson_file_path = geojson_dir_path + CommonHelper.get_dash_in_system() + geojson_name + ".geoJson"
             if os.path.exists(geojson_file_path):
                 os.remove(geojson_file_path)
