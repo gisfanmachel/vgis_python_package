@@ -82,3 +82,64 @@ class coordConverter:
         doubles_wgs84 = self.gcj02towgs84(doubles_gcj[0], doubles_gcj[1])
         # //返回 纠偏后 坐标
         return doubles_wgs84
+
+    # 腾讯坐标转化为gps坐标
+    def convert_tencentCoords_2_gpscoords(self, lng, lat):
+        def is_in_china(lng, lat):
+            """判断坐标是否在中国境内"""
+            return 72.004 <= lng <= 137.8347 and 0.8293 <= lat <= 55.8271
+
+        def transform_lat(x, y):
+            """GCJ-02转换算法中的纬度变换"""
+            ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * math.sqrt(abs(x))
+            ret += (20.0 * math.sin(6.0 * x * math.pi) + 20.0 * math.sin(2.0 * x * math.pi)) * 2.0 / 3.0
+            ret += (20.0 * math.sin(y * math.pi) + 40.0 * math.sin(y / 3.0 * math.pi)) * 2.0 / 3.0
+            ret += (160.0 * math.sin(y / 12.0 * math.pi) + 320 * math.sin(y * math.pi / 30.0)) * 2.0 / 3.0
+            return ret
+
+        def transform_lng(x, y):
+            """GCJ-02转换算法中的经度变换"""
+            ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * math.sqrt(abs(x))
+            ret += (20.0 * math.sin(6.0 * x * math.pi) + 20.0 * math.sin(2.0 * x * math.pi)) * 2.0 / 3.0
+            ret += (20.0 * math.sin(x * math.pi) + 40.0 * math.sin(x / 3.0 * math.pi)) * 2.0 / 3.0
+            ret += (150.0 * math.sin(x / 12.0 * math.pi) + 300.0 * math.sin(x / 30.0 * math.pi)) * 2.0 / 3.0
+            return ret
+
+        def delta(lng, lat):
+            """计算GCJ-02与WGS-84的经纬度偏移量"""
+            a = 6378245.0  # 克拉索夫斯基椭球长半轴
+            ee = 0.00669342162296594323  # 克拉索夫斯基椭球扁率
+            dlat = transform_lat(lng - 105.0, lat - 35.0)
+            dlng = transform_lng(lng - 105.0, lat - 35.0)
+            rad_lat = lat / 180.0 * math.pi
+            magic = math.sin(rad_lat)
+            magic = 1 - ee * magic * magic
+            sqrt_magic = math.sqrt(magic)
+            dlat = (dlat * 180.0) / ((a * (1 - ee)) / (magic * sqrt_magic) * math.pi)
+            dlng = (dlng * 180.0) / (a / sqrt_magic * math.cos(rad_lat) * math.pi)
+            return dlat, dlng
+
+        """将GCJ-02坐标转换为WGS-84坐标"""
+        if not is_in_china(lng, lat):
+            return lng, lat
+        dlat, dlng = delta(lng, lat)
+        wgs_lat = lat - dlat
+        wgs_lng = lng - dlng
+        # 第二次校正
+        dlat2, dlng2 = delta(wgs_lng, wgs_lat)
+        wgs_lat = lat - dlat2
+        wgs_lng = lng - dlng2
+        return wgs_lng, wgs_lat
+
+
+#  编写单元测试
+if __name__ == '__main__':
+    coord_converter = coordConverter()
+
+    # 示例：将腾讯地图坐标转换为GPS坐标
+    tencent_lng = 116.397428  # 腾讯地图经度
+    tencent_lat = 39.90923  # 腾讯地图纬度
+
+    wgs_lng, wgs_lat = coord_converter.convert_tencentCoords_2_gpscoords(tencent_lng, tencent_lat)
+    print(f"腾讯地图坐标 (GCJ-02)：经度={tencent_lng}, 纬度={tencent_lat}")
+    print(f"转换后的GPS坐标 (WGS-84)：经度={wgs_lng}, 纬度={wgs_lat}")
