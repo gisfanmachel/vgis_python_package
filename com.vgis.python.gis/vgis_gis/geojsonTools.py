@@ -28,20 +28,21 @@ class GeoJsonHelper:
 
     @staticmethod
     # 合并多个同类geojson
-    def merge_geojsons(geojson_files_path, merge_result_file):
+    def merge_geojsons(geojson_files_path, merge_result_file, encoding):
         index = 0
         all_data = {}
-        encoding = FileHelper.get_file_encoding(geojson_files_path)
+        # encoding = FileHelper.get_file_encoding(geojson_files_path)
         for file_name in os.listdir(geojson_files_path):
             geojson_file = os.path.join(geojson_files_path, file_name)
             with open(geojson_file, 'r', encoding=encoding) as fp:
                 each_data = json.load(fp)
             if index == 0:
                 all_data = each_data
+                index += 1
             else:
                 all_data["features"] += each_data["features"]
-        result_file = open(merge_result_file, "w")
-        json.dump(all_data, result_file)
+        result_file = open(merge_result_file, "w", encoding=encoding)
+        json.dump(all_data, result_file, ensure_ascii=False, indent=4)
 
     # 将geojson转换为shp
     @staticmethod
