@@ -12,6 +12,7 @@
 import base64
 import binascii
 import logging
+import re
 import traceback
 
 from Crypto.Cipher import AES
@@ -20,7 +21,7 @@ from Crypto.PublicKey import RSA
 from Crypto.Util.Padding import pad
 from cryptography.fernet import Fernet
 
-from vgis_utils.vgis_string.stringTools import StringHelper
+
 
 
 # Fernet加解密
@@ -108,10 +109,23 @@ class AESEncryption:
         # 完成解密
         AES_de_str = AES_de_obj.decrypt(data)
         # 去掉字符串开头的\x
-        AES_de_str = StringHelper.handle_x_str(AES_de_str.decode("utf-8"))
+        AES_de_str = self.handle_x_str(AES_de_str.decode("utf-8"))
         # 去掉字符串末尾的\r
-        AES_de_str=AES_de_str.rstrip("\r")
+        AES_de_str = AES_de_str.rstrip("\r")
         return AES_de_str
+
+    # 去掉字符串里的\x开头的特殊字符
+    def handle_x_str(self, content):
+        # 使用unicode-escape编码集，将unicode内存编码值直接存储
+        content = content.encode('unicode_escape').decode('utf-8')
+        # 利用正则匹配\x开头的特殊字符
+        result = re.findall(r'\\x[a-f0-9]{2}', content)
+        for x in result:
+            # 替换找的的特殊字符
+            content = content.replace(x, '')
+        # 最后再解码
+        content = content.encode('utf-8').decode('unicode_escape')
+        return content
 
 
 # RSA加解密
@@ -162,10 +176,12 @@ class RSAEncryption:
         text_decrypted = text_decrypted.decode()
         return text_decrypted
 
+
 # 字符串和十六进制互转
 class StringHexMutualConvertion:
     def __init__(self):
         pass
+
     # 字符串转十六进制
     @staticmethod
     def convert_str_to_hex(content):
@@ -178,8 +194,8 @@ class StringHexMutualConvertion:
         decode_str = binascii.a2b_hex(content).decode("utf-8")
         return decode_str
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     # 测试Fernet加解密
     print("测试Fernet加解密")
     fernet_key = b'uNl-LfGm6NKDQ1Uz9azZIEEzYnaLz68gz0UzaQvYFIY='
@@ -217,5 +233,3 @@ if __name__ == "__main__":
     print('加密后字符串:' + text_encrypted_base64)
     text_decrypted = rSAEncryption.decryption(text_encrypted_base64)
     print('解密后字符串:' + text_decrypted)
-
-
