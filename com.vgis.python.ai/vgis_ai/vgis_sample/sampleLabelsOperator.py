@@ -68,6 +68,10 @@ class Alg_Type_Enum(Enum):
     yolov8_obj_det = "yolov8_obj_det"
     # YOLOV8 实例分割
     yolov8_ins_seg = "yolov8_ins_seg"
+    # YOLOV11 目标检测
+    yolov11_obj_det = "yolov11_obj_det"
+    # YOLOV11 实例分割
+    yolov11_ins_seg = "yolov11_ins_seg"
     # mmdetectionv3 目标检测
     mmdetv3_obj_det = "mmdetv3_obj_det"
     # mmdetectionv3 实例分割
@@ -80,31 +84,52 @@ class Alg_Type_Enum(Enum):
 
 # 算法模型
 class Alg_Model_Enum(Enum):
+    # YoloV3模型
     class YoloV3:
         pass
 
+    # YoloV8模型
     class YoloV8:
+        # 实例分割
         class Insseg:
             yolo_seg = "yolo_v8-insseg-yolo_seg"
 
+        # 目标检测
         class Objdet:
             yolo_hbb = "yolo_v8-objdet-yolo_hbb"
             yolo_obb = "yolo_v8-objdet-yolo_obb"
 
+    # YoloV11模型
+    class YoloV11:
+        # 实例分割
+        class Insseg:
+            yolo_seg = "yolo_v11-insseg-yolo_seg"
+
+        # 目标检测
+        class Objdet:
+            yolo_hbb = "yolo_v11-objdet-yolo_hbb"
+            yolo_obb = "yolo_v11-objdet-yolo_obb"
+
+    # MmdetV3模型
     class MmdetV3:
+        # 实例分割
         class Insseg:
             mask_rcnn = "mmdet_v3-insseg-mask_rcnn_mask"
             cascade_mask_rcnn = "mmdet_v3-insseg-cascade_mask_rcnn_mask"
 
+        # 目标检测
         class Objdet:
             rtmdet = "mmdet_v3-objdet-rtmdet_hbb"
             cascade_rcnn = "mmdet_v3-objdet-cascade_rcnn_hbb"
             faster_rcnn = "mmdet_v3-objdet-faster_rcnn_hbb"
 
+        # 全景分割
         class Panseg:
             panoptic_fpn = "mmdet_v3-panseg-panoptic_fpn_mask"
 
+    # MmsegV1模型
     class MmsegV1:
+        # 语义分割
         class Semseg:
             segformer = "mmseg_v1-semseg-segformer_mask"
             deeplab = "mmseg_v1-semseg-deeplab_mask"
@@ -112,6 +137,7 @@ class Alg_Model_Enum(Enum):
 
     # 武汉珞珈
     class LuojiaNet:
+        # 定义一个名为LuojiaNet的类
         pass
 
     # 中科院空天灵眸
