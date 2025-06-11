@@ -176,6 +176,17 @@ class YoloV8_Dir_Name_Enum(Enum):
     # YOLOV8实例分割训练数据的目录结构
     yolo_instance_segment_train_dir_name = "Yolov8InssegTrain"
 
+# YOLOV11目录
+class YoloV11_Dir_Name_Enum(Enum):
+    # labelme矩形标注转换为yolov11目标检测coco8标注
+    yolo_object_detect_txt_dir_name = "YoloV11ObjdetTxts"
+    # YOLOV11目标检测训练数据的目录结构
+    yolo_object_detect_train_dir_name = "Yolov11ObjdetTrain"
+    # labelme多边形标注转换为yolov11实例分割coco8标注
+    yolo_instance_segment_txt_dir_name = "YoloV11InssegTxts"
+    # YOLOV11实例分割训练数据的目录结构
+    yolo_instance_segment_train_dir_name = "Yolov11InssegTrain"
+
 
 # MmdetectionV3目录
 class MmdetV3_Dir_Name_Enum(Enum):
